@@ -10,13 +10,13 @@ type
   TForm1 = class(TForm)
     WebBrowser1: TWebBrowser;
     procedure FormCreate(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure WebBrowser1BeforeNavigate2(Sender: TObject;
       const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
       Headers: OleVariant; var Cancel: WordBool);
     procedure WebBrowser1DocumentComplete(Sender: TObject;
       const pDisp: IDispatch; var URL: OleVariant);
     procedure FormClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     procedure WMCopyData(var Msg: TWMCopyData); message WM_COPYDATA;
   protected
@@ -80,9 +80,9 @@ begin
       begin
         SetForegroundWindow(Application.Handle);
         case MessageBox(Handle,'Закрыть приложение',PChar(Application.Title),35) of
-       6: close;
-     end;
-    end;
+          6: close;
+        end;
+      end;
   end;
 end;
 
@@ -106,15 +106,6 @@ begin
   ExcludeList:=TStringList.Create;
   if FileExists(ExtractFilePath(ParamStr(0))+'Exclude.txt') then
   ExcludeList.LoadFromFile(ExtractFilePath(ParamStr(0))+'Exclude.txt');
-end;
-
-procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  Notifications.Text:=WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
-  Notifications.SaveToFile(ExtractFilePath(ParamStr(0))+'Notifications.txt');
-  Notifications.Free;
-  ExcludeList.Free;
-  tray(2);
 end;
 
 procedure TForm1.WebBrowser1BeforeNavigate2(Sender: TObject;
@@ -198,6 +189,8 @@ begin
       end; end else a_color:='gray';
 
     WebBrowser1.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:'+a_color+';"><img src="'+p_img+'" /></div><div id="context"><div id="title">'+a_title+'</div><div id="clear"></div><div id="description">'+a_desc+'</div></div><div id="time">'+copy(TimeToStr(Time),1,5)+'</div></div>'+WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
+    Notifications.Text:=WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
+    Notifications.SaveToFile(ExtractFilePath(ParamStr(0))+'Notifications.txt');
   end;
   Msg.Result:=Integer(True);
 end;
@@ -209,7 +202,14 @@ end;
 
 procedure TForm1.WMActivate(var msg: TMessage);
 begin
-if Msg.WParam = WA_INACTIVE then MyHide;
+if Msg.WParam=WA_INACTIVE then MyHide;
+end;
+
+procedure TForm1.FormDestroy(Sender: TObject);
+begin
+  Notifications.Free;
+  ExcludeList.Free;
+  tray(2);
 end;
 
 end.
