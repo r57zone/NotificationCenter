@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, OleCtrls, SHDocVw, MSHTML, ShellAPI, StdCtrls;
+  Dialogs, OleCtrls, SHDocVw, MSHTML, ShellAPI, StdCtrls, ExtCtrls;
 
 type
   TForm1 = class(TForm)
@@ -21,8 +21,8 @@ type
     procedure WMCopyData(var Msg: TWMCopyData); message WM_COPYDATA;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
-    procedure IconMouse(var msg:TMessage); message WM_USER+1;
-    procedure WMActivate(var msg:TMessage); message WM_ACTIVATE;
+    procedure IconMouse(var Msg:TMessage); message WM_USER+1;
+    procedure WMActivate(var Msg:TMessage); message WM_ACTIVATE;
     { Private declarations }
   public
     { Public declarations }
@@ -71,12 +71,12 @@ with nim do begin
   end;
 end;
 
-procedure TForm1.IconMouse(var msg: TMessage);
+procedure TForm1.IconMouse(var Msg: TMessage);
 begin
-  case msg.lparam of
-    wm_lbuttonup: if (Left=Screen.Width+Width) and (Top=Screen.Height+Height) then MyShow else MyHide;
+  case Msg.lparam of
+    WM_LButtonDown: if (Left=Screen.Width+Width) and (Top=Screen.Height+Height) then MyShow else MyHide;
 
-    wm_rbuttonup:
+    WM_RButtonDown:
       begin
         SetForegroundWindow(Application.Handle);
         case MessageBox(Handle,'Закрыть приложение',PChar(Application.Title),35) of
@@ -170,7 +170,7 @@ begin
     if (p_img='null') and (p_img2<>'null') then p_img:=p_img2;
     if (p_img='null') and (p_img2='null') then p_img:='sys.png';
 
-    if (a_desc<>'null') and (a_desc_sub<>'null') then a_desc:=a_desc+' '+a_desc_sub;
+    if (a_desc<>'null') and (a_desc_sub<>'null') then a_desc:=a_desc+' - '+a_desc_sub;
     if (a_desc<>'null') and (a_desc_sub='null') then a_desc:=a_desc;
     if (a_desc='null') and (a_desc_sub<>'null') then a_desc:=a_desc_sub;
     if (a_desc='null') and (a_desc_sub='null') then a_desc:='';
@@ -188,7 +188,7 @@ begin
       '6': a_color:='#222222';
       end; end else a_color:='gray';
 
-    WebBrowser1.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:'+a_color+';"><img src="'+p_img+'" /></div><div id="context"><div id="title">'+a_title+'</div><div id="clear"></div><div id="description">'+a_desc+'</div></div><div id="time">'+copy(TimeToStr(Time),1,5)+'</div></div>'+WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
+    WebBrowser1.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:'+a_color+';"><img src="'+p_img+'" /></div><div id="context"><div id="title">'+a_title+'</div><div id="clear"></div><div id="description">'+a_desc+'</div></div><div id="time">'+copy(TimeToStr(Time),1,5)+'<br>'+DateToStr(Date)+'</div></div>'+WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
     Notifications.Text:=WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
     Notifications.SaveToFile(ExtractFilePath(ParamStr(0))+'Notifications.txt');
   end;
@@ -197,12 +197,12 @@ end;
 
 procedure TForm1.FormClick(Sender: TObject);
 begin
-Application.MessageBox('Центр уведомлений 0.3'+#13#10+'https://github.com/r57zone'+#13#10+'Последнее обновление: 28.04.2016','О программе...',0);
+  Application.MessageBox('Центр уведомлений 0.4'+#13#10+'https://github.com/r57zone'+#13#10+'Последнее обновление: 01.05.2016','О программе...',0);
 end;
 
-procedure TForm1.WMActivate(var msg: TMessage);
+procedure TForm1.WMActivate(var Msg: TMessage);
 begin
-if Msg.WParam=WA_INACTIVE then MyHide;
+  if Msg.WParam=WA_INACTIVE then MyHide;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
