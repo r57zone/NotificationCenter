@@ -1,7 +1,7 @@
 <h2>RU:</h2>
 Альтернативный центр уведомлений для Windows.<br>
 Совместим с [уведомлениями для своих программ](https://github.com/r57zone/notifications).<br>
-![screen](https://cloud.githubusercontent.com/assets/9499881/14897981/8ef774ca-0d95-11e6-9616-b99a6f111a4a.png)<br>
+![screen](https://cloud.githubusercontent.com/assets/9499881/14942106/12caabac-0fc4-11e6-8e1c-bd8c18bcf758.png)<br>
 Перед запуском необходимо запустить файл "ie8_enable.reg" для корректного отображения интерфейса.<br><br>
 Для того, чтобы какое-либо уведомление не появлялось в центре уведомлений необходимо добавить строку с названием уведомления в файл "Exclude.txt", например "LostFilm.TV".<br>
 
