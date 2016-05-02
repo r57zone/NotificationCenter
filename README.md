@@ -17,5 +17,7 @@ To any notice did not appear in the center of notifications, you must add a line
 
 **[Download latest version](https://github.com/r57zone/Notification-center/releases)**
 
+If you need a program with an English translation, please write to email and I'll will build it soon.
+
 **Feedback**: r57zone[at]gmail.com 
 
