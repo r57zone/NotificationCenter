@@ -30,7 +30,8 @@ type
 
 var
   Form1: TForm1;
-  Notifications,ExcludeList:TStringList;
+  Notifications, ExcludeList: TStringList;
+  DefLng: boolean;
 
 implementation
 
@@ -50,19 +51,18 @@ begin
   Form1.Top:=Screen.Height+Form1.Height;
 end;
 
-procedure Tray(n:integer);
+procedure Tray(n:integer); //1 - добавить, 2 - удалить, 3 -  заменить
 var
-  nim:TNotifyIconData;
+  nim: TNotifyIconData;
 begin
-//1 - добавить, 2 - удалить, 3 - заменить
-with nim do begin
-  cbsize:=sizeof(nim);
-  wnd:=Form1.handle;
-  uid:=1;
-  uflags:=nif_icon or nif_message or nif_tip;
-  hicon:=application.icon.handle;
-  ucallbackmessage:=wm_user+1;
-  StrPCopy(szTip,Application.Title);
+  with nim do begin
+    cbSize:=SizeOf(nim);
+    wnd:=Form1.Handle;
+    uid:=1;
+    uflags:=nif_icon or nif_message or nif_tip;
+    hicon:=Application.Icon.Handle;
+    ucallbackmessage:=WM_User+1;
+    StrCopy(szTip, PChar(Application.Title));
   end;
   case n of
     1: Shell_NotifyIcon(nim_add,@nim);
@@ -72,6 +72,8 @@ with nim do begin
 end;
 
 procedure TForm1.IconMouse(var Msg: TMessage);
+var
+  CaptionCase: string;
 begin
   case Msg.lparam of
     WM_LButtonDown: if (Left=Screen.Width+Width) and (Top=Screen.Height+Height) then MyShow else MyHide;
@@ -79,8 +81,9 @@ begin
     WM_RButtonDown:
       begin
         SetForegroundWindow(Application.Handle);
-        case MessageBox(Handle,'Закрыть приложение',PChar(Application.Title),35) of
-          6: close;
+        if DefLng then CaptionCase:='Close app?' else CaptionCase:='Закрыть приложение?';
+        case MessageBox(Handle, PChar(CaptionCase), PChar(Application.Title), 35) of
+          6: Close;
         end;
       end;
   end;
@@ -89,12 +92,29 @@ end;
 procedure TForm1.CreateParams(var Params: TCreateParams);
 begin
   inherited;
-  Params.Style := WS_POPUP or WS_THICKFRAME;
+  Params.Style:=WS_POPUP or WS_THICKFRAME;
+end;
+
+function GetLocaleInformation(Flag: Integer): string;
+var
+  pcLCA: array [0..20] of Char;
+begin
+  if GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, Flag, pcLCA, 19)<=0 then
+    pcLCA[0]:=#0;
+  Result:=pcLCA;
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  Application.Title:='Центр уведомлений';
+  if GetLocaleInformation(LOCALE_SENGLANGUAGE)='Russian' then
+    DefLng:=false
+  else
+    DefLng:=true;
+  if DefLng then
+    Application.Title:='Notification center'
+  else
+    Application.Title:='Центр уведомлений';
+  
   WebBrowser1.Silent:=true;
   WebBrowser1.Navigate(ExtractFilePath(ParamStr(0))+'main.htm');
   tray(1);
@@ -133,7 +153,13 @@ begin
     sUrl:=ExtractFileName(StringReplace(url,'/','\',[rfReplaceAll]));
     if sUrl='main.htm' then begin
       Application.ProcessMessages;
-      if WebBrowser1.Document <> nil then WebBrowser1.OleObject.Document.getElementById('items').innerHTML:=Notifications.Text;
+      if WebBrowser1.Document <> nil then begin
+        WebBrowser1.OleObject.Document.getElementById('items').innerHTML:=Notifications.Text;
+        if DefLng then begin
+          WebBrowser1.OleObject.Document.getElementById('title').innerHTML:='Notifications';
+          WebBrowser1.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#1'';">DELETE ALL</a>';
+        end;
+      end;
     end;
   end;
 end;
@@ -175,7 +201,7 @@ begin
     if (a_desc='null') and (a_desc_sub<>'null') then a_desc:=a_desc_sub;
     if (a_desc='null') and (a_desc_sub='null') then a_desc:='';
 
-    if a_title='null' then a_title:='Неизвестное приложение';
+    if a_title='null' then if DefLng then a_title:='Unkwnon application' else a_title:='Неизвестное приложение';
 
     if a_color<>'null' then begin
     case a_color[1] of
@@ -185,7 +211,8 @@ begin
       '3': a_color:='#008a00';
       '4': a_color:='#5133ab';
       '5': a_color:='#8b0094';
-      '6': a_color:='#222222';
+      '6': a_color:='#ac193d';
+      '7': a_color:='#222222';
       end; end else a_color:='gray';
 
     WebBrowser1.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:'+a_color+';"><img src="'+p_img+'" /></div><div id="context"><div id="title">'+a_title+'</div><div id="clear"></div><div id="description">'+a_desc+'</div></div><div id="time">'+copy(TimeToStr(Time),1,5)+'<br>'+DateToStr(Date)+'</div></div>'+WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
@@ -197,7 +224,7 @@ end;
 
 procedure TForm1.FormClick(Sender: TObject);
 begin
-  Application.MessageBox('Центр уведомлений 0.4'+#13#10+'https://github.com/r57zone'+#13#10+'Последнее обновление: 01.05.2016','О программе...',0);
+  Application.MessageBox(PChar(Application.Title+' 0.4.2'+#13#10+'https://github.com/r57zone'+#13#10+'Последнее обновление: 11.08.2016'),'О программе...',0);
 end;
 
 procedure TForm1.WMActivate(var Msg: TMessage);
