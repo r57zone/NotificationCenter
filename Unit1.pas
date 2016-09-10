@@ -1,5 +1,8 @@
 unit Unit1;
 
+{Notification Center 0.4.2, последнее обновление 10.09.2016
+https://github.com/r57zone/Notification-center}
+
 interface
 
 uses
@@ -58,10 +61,10 @@ begin
   with nim do begin
     cbSize:=SizeOf(nim);
     wnd:=Form1.Handle;
-    uid:=1;
-    uflags:=nif_icon or nif_message or nif_tip;
-    hicon:=Application.Icon.Handle;
-    ucallbackmessage:=WM_User+1;
+    uId:=1;
+    uFlags:=nif_icon or nif_message or nif_tip;
+    hIcon:=Application.Icon.Handle;
+    uCallBackMessage:=WM_User+1;
     StrCopy(szTip, PChar(Application.Title));
   end;
   case n of
@@ -164,6 +167,12 @@ begin
   end;
 end;
 
+function MyTime: string;
+begin
+Result:=Copy(TimeToStr(Time),1,5);
+if Result[Length(Result)]=':' then Result:=Copy(Result,1,Length(Result)-1);
+end;
+
 procedure TForm1.WMCopyData(var Msg: TWMCopyData);
 var
 a_notify,a_title,a_desc,a_desc_sub,p_img,p_img2,a_color:String;
@@ -215,7 +224,7 @@ begin
       '7': a_color:='#222222';
       end; end else a_color:='gray';
 
-    WebBrowser1.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:'+a_color+';"><img src="'+p_img+'" /></div><div id="context"><div id="title">'+a_title+'</div><div id="clear"></div><div id="description">'+a_desc+'</div></div><div id="time">'+copy(TimeToStr(Time),1,5)+'<br>'+DateToStr(Date)+'</div></div>'+WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
+    WebBrowser1.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:'+a_color+';"><img src="'+p_img+'" /></div><div id="context"><div id="title">'+a_title+'</div><div id="clear"></div><div id="description">'+a_desc+'</div></div><div id="time">'+MyTime+'<br>'+DateToStr(Date)+'</div></div>'+WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
     Notifications.Text:=WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
     Notifications.SaveToFile(ExtractFilePath(ParamStr(0))+'Notifications.txt');
   end;

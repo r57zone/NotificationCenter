@@ -1,24 +1,29 @@
-<h2>RU:</h2>
-Альтернативный центр уведомлений для Windows.<br>
-Совместимо с [уведомлениями для своих программ](https://github.com/r57zone/notifications).<br>
-![](https://cloud.githubusercontent.com/assets/9499881/17570796/ea519c2c-5f5e-11e6-85fd-1997896f2fe9.png)<br>
+# Notification center (Ru)
+Альтернативный центр уведомлений для Windows. Совместимо с [уведомлениями для программ](https://github.com/r57zone/notifications).<br>
 Перед запуском необходимо запустить файл "ie8_enable.reg" для корректного отображения интерфейса.<br><br>
-Для того, чтобы какое-либо уведомление не появлялось в центре уведомлений необходимо добавить строку с названием уведомления в файл "Exclude.txt", например "LostFilm.TV".<br>
+Для того, чтобы какое-либо уведомление не появлялось в центре уведомлений, необходимо добавить строку с названием уведомления в файл "Exclude.txt", например "LostFilm.TV".
 
-**[Скачать последнюю версию](https://github.com/r57zone/Notification-center/releases)**
+## Скриншоты
+![](https://cloud.githubusercontent.com/assets/9499881/18412085/50e532a0-7797-11e6-80bd-7d63bd899628.png)
 
-**Обратная связь**: r57zone[собака]gmail.com 
+## Загрузка
+>Версия для Windows XP, ReactOS, Windows 7, Windows 8.1, Windows 10.<br>
+**[Загрузить](https://github.com/r57zone/Notification-center/releases)**<br>
 
-<h2>EN:</h2>
-Alternative notification center for Windows.<br>
-Compatible with [notifications for their programs](https://github.com/r57zone/notifications).<br>
-![](https://cloud.githubusercontent.com/assets/9499881/17570795/ea4cad8e-5f5e-11e6-9798-1f29967fbd3d.png)<br>
+## Обратная связь
+`r57zone[собака]gmail.com`
+
+# Notification center (En)
+Alternative notification center for Windows. Compatible with [notifications for programs](https://github.com/r57zone/notifications).<br>
 Before starting, you must run "ie8_enable.reg" file to correctly display interface.<br><br>
-To any notice did not appear in the center of notifications, you must add a line with the name of the notification to file "Exclude.txt", eg "LostFilm.TV".<br>
+To any notice did not appear in the center of notifications, you must add a line with the name of the notification to file "Exclude.txt", eg "LostFilm.TV".
 
-**[Download latest version](https://github.com/r57zone/Notification-center/releases)**
+## Screenshots
+![](https://cloud.githubusercontent.com/assets/9499881/18412086/5110bc18-7797-11e6-817b-224dc7c79c6b.png)
 
-If you need a program with an English translation, please write to email and I'll will build it soon.
+## Download
+>Version for Windows XP, ReactOS, Windows 7, Windows 8.1, Windows 10.<br>
+**[Download](https://github.com/r57zone/Notification-center/releases)**<br>
 
-**Feedback**: r57zone[at]gmail.com 
-
+## Feedback
+`r57zone[at]gmail.com`
