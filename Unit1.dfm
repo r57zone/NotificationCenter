@@ -2,7 +2,6 @@ object Form1: TForm1
   Left = 192
   Top = 124
   BorderStyle = bsSingle
-  Caption = 'Notification center'
   ClientHeight = 322
   ClientWidth = 390
   Color = clWhite
@@ -31,5 +30,9 @@ object Form1: TForm1
       2B2E126208000000000000004C0000000114020000000000C000000000000046
       8000000000000000000000000000000000000000000000000000000000000000
       00000000000000000100000000000000000000000000000000000000}
+  end
+  object XPManifest1: TXPManifest
+    Left = 8
+    Top = 8
   end
 end

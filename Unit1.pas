@@ -7,11 +7,12 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, OleCtrls, SHDocVw, MSHTML, ShellAPI, StdCtrls, ExtCtrls;
+  Dialogs, OleCtrls, SHDocVw, MSHTML, ShellAPI, StdCtrls, ExtCtrls, XPMan;
 
 type
   TForm1 = class(TForm)
     WebBrowser1: TWebBrowser;
+    XPManifest1: TXPManifest;
     procedure FormCreate(Sender: TObject);
     procedure WebBrowser1BeforeNavigate2(Sender: TObject;
       const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
@@ -22,6 +23,7 @@ type
     procedure FormDestroy(Sender: TObject);
   private
     procedure WMCopyData(var Msg: TWMCopyData); message WM_COPYDATA;
+    procedure DefaultHandler(var Message); override;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
     procedure IconMouse(var Msg:TMessage); message WM_USER+1;
@@ -35,6 +37,7 @@ var
   Form1: TForm1;
   Notifications, ExcludeList: TStringList;
   DefLng: boolean;
+  WM_TaskBarCreated: Cardinal;
 
 implementation
 
@@ -109,6 +112,8 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  WM_TaskBarCreated:=RegisterWindowMessage('TaskbarCreated');
+
   if GetLocaleInformation(LOCALE_SENGLANGUAGE)='Russian' then
     DefLng:=false
   else
@@ -121,14 +126,14 @@ begin
   WebBrowser1.Silent:=true;
   WebBrowser1.Navigate(ExtractFilePath(ParamStr(0))+'main.htm');
   tray(1);
-  SetWindowLong(Application.Handle, GWL_EXSTYLE,GetWindowLong(Application.Handle, GWL_EXSTYLE) or WS_EX_TOOLWINDOW);
+  SetWindowLong(Application.Handle, GWL_EXSTYLE, GetWindowLong(Application.Handle, GWL_EXSTYLE) or WS_EX_TOOLWINDOW);
   MyHide;
   Notifications:=TStringList.Create;
   if FileExists(ExtractFilePath(ParamStr(0))+'Notifications.txt') then
-  Notifications.LoadFromFile(ExtractFilePath(ParamStr(0))+'Notifications.txt');
+    Notifications.LoadFromFile(ExtractFilePath(ParamStr(0))+'Notifications.txt');
   ExcludeList:=TStringList.Create;
   if FileExists(ExtractFilePath(ParamStr(0))+'Exclude.txt') then
-  ExcludeList.LoadFromFile(ExtractFilePath(ParamStr(0))+'Exclude.txt');
+    ExcludeList.LoadFromFile(ExtractFilePath(ParamStr(0))+'Exclude.txt');
 end;
 
 procedure TForm1.WebBrowser1BeforeNavigate2(Sender: TObject;
@@ -163,19 +168,21 @@ begin
           WebBrowser1.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#1'';">DELETE ALL</a>';
         end;
       end;
+      Caption:='Notification center';
     end;
   end;
 end;
 
 function MyTime: string;
 begin
-Result:=Copy(TimeToStr(Time),1,5);
-if Result[Length(Result)]=':' then Result:=Copy(Result,1,Length(Result)-1);
+  Result:=Copy(TimeToStr(Time),1,5);
+  if Result[Length(Result)]=':' then
+    Result:=Copy(Result,1,Length(Result)-1);
 end;
 
 procedure TForm1.WMCopyData(var Msg: TWMCopyData);
 var
-a_notify,a_title,a_desc,a_desc_sub,p_img,p_img2,a_color:String;
+  a_notify,a_title,a_desc,a_desc_sub,p_img,p_img2,a_color:String;
 begin
   if copy(PChar(TWMCopyData(Msg).CopyDataStruct.lpData),1,7)='NOTIFY ' then begin
     a_notify:=PChar(TWMCopyData(Msg).CopyDataStruct.lpData);
@@ -245,7 +252,13 @@ procedure TForm1.FormDestroy(Sender: TObject);
 begin
   Notifications.Free;
   ExcludeList.Free;
-  tray(2);
+  Tray(2);
+end;
+
+procedure TForm1.DefaultHandler(var Message);
+begin
+  if TMessage(Message).Msg = WM_TASKBARCREATED then Tray(1);
+  inherited;
 end;
 
 end.
