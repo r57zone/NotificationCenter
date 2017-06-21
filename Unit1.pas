@@ -1,26 +1,29 @@
 unit Unit1;
 
-{Notification Center 0.4.2, последнее обновление 10.09.2016
-https://github.com/r57zone/Notification-center}
-
 interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, OleCtrls, SHDocVw, MSHTML, ShellAPI, StdCtrls, ExtCtrls, XPMan;
+  Dialogs, OleCtrls, SHDocVw, MSHTML, ShellAPI, StdCtrls, ExtCtrls, XPMan,
+  Menus;
 
 type
-  TForm1 = class(TForm)
-    WebBrowser1: TWebBrowser;
+  TMain = class(TForm)
+    WebView: TWebBrowser;
     XPManifest1: TXPManifest;
+    PopupMenu: TPopupMenu;
+    AboutBtn: TMenuItem;
+    N2: TMenuItem;
+    ExitBtn: TMenuItem;
     procedure FormCreate(Sender: TObject);
-    procedure WebBrowser1BeforeNavigate2(Sender: TObject;
+    procedure WebViewBeforeNavigate2(Sender: TObject;
       const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
       Headers: OleVariant; var Cancel: WordBool);
-    procedure WebBrowser1DocumentComplete(Sender: TObject;
+    procedure WebViewDocumentComplete(Sender: TObject;
       const pDisp: IDispatch; var URL: OleVariant);
-    procedure FormClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure AboutBtnClick(Sender: TObject);
+    procedure ExitBtnClick(Sender: TObject);
   private
     procedure WMCopyData(var Msg: TWMCopyData); message WM_COPYDATA;
     procedure DefaultHandler(var Message); override;
@@ -34,7 +37,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  Main: TMain;
   Notifications, ExcludeList: TStringList;
   DefLng: boolean;
   WM_TaskBarCreated: Cardinal;
@@ -45,16 +48,16 @@ implementation
 
 procedure MyShow;
 begin
-  Form1.Left:=Screen.Width-Form1.Width-15;
-  Form1.Top:=Screen.Height-Form1.Height-57;
+  Main.Left:=Screen.Width - Main.Width-15;
+  Main.Top:=Screen.Height - Main.Height-57;
   Application.ProcessMessages;
-  if Form1.WebBrowser1.Document <> nil then (Form1.Webbrowser1.Document as IHTMLDocument2).ParentWindow.Focus;
+  if Main.WebView.Document <> nil then (Main.WebView.Document as IHTMLDocument2).ParentWindow.Focus;
 end;
 
 procedure MyHide;
 begin
-  Form1.Left:=Screen.Width+Form1.Width;
-  Form1.Top:=Screen.Height+Form1.Height;
+  Main.Left:=0 - Main.Width;
+  Main.Top:=0 - Main.Height;
 end;
 
 procedure Tray(n:integer); //1 - добавить, 2 - удалить, 3 -  заменить
@@ -63,39 +66,33 @@ var
 begin
   with nim do begin
     cbSize:=SizeOf(nim);
-    wnd:=Form1.Handle;
+    wnd:=Main.Handle;
     uId:=1;
     uFlags:=nif_icon or nif_message or nif_tip;
     hIcon:=Application.Icon.Handle;
-    uCallBackMessage:=WM_User+1;
+    uCallBackMessage:=WM_User + 1;
     StrCopy(szTip, PChar(Application.Title));
   end;
   case n of
-    1: Shell_NotifyIcon(nim_add,@nim);
-    2: Shell_NotifyIcon(nim_delete,@nim);
-    3: Shell_NotifyIcon(nim_modify,@nim);
+    1: Shell_NotifyIcon(nim_add, @nim);
+    2: Shell_NotifyIcon(nim_delete, @nim);
+    3: Shell_NotifyIcon(nim_modify, @nim);
   end;
 end;
 
-procedure TForm1.IconMouse(var Msg: TMessage);
-var
-  CaptionCase: string;
+procedure TMain.IconMouse(var Msg: TMessage);
 begin
-  case Msg.lparam of
-    WM_LButtonDown: if (Left=Screen.Width+Width) and (Top=Screen.Height+Height) then MyShow else MyHide;
+  case Msg.LParam of
+    WM_LButtonDown:
+      if (Left = 0 - Width) and (Top = 0 - Height) then
+        MyShow else MyHide;
 
     WM_RButtonDown:
-      begin
-        SetForegroundWindow(Application.Handle);
-        if DefLng then CaptionCase:='Close app?' else CaptionCase:='Закрыть приложение?';
-        case MessageBox(Handle, PChar(CaptionCase), PChar(Application.Title), 35) of
-          6: Close;
-        end;
-      end;
+      PopupMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
   end;
 end;
 
-procedure TForm1.CreateParams(var Params: TCreateParams);
+procedure TMain.CreateParams(var Params: TCreateParams);
 begin
   inherited;
   Params.Style:=WS_POPUP or WS_THICKFRAME;
@@ -110,62 +107,63 @@ begin
   Result:=pcLCA;
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TMain.FormCreate(Sender: TObject);
 begin
   WM_TaskBarCreated:=RegisterWindowMessage('TaskbarCreated');
 
-  if GetLocaleInformation(LOCALE_SENGLANGUAGE)='Russian' then
-    DefLng:=false
-  else
-    DefLng:=true;
-  if DefLng then
-    Application.Title:='Notification center'
-  else
+  if GetLocaleInformation(LOCALE_SENGLANGUAGE) = 'Russian' then begin
+    DefLng:=false;
     Application.Title:='Центр уведомлений';
-  
-  WebBrowser1.Silent:=true;
-  WebBrowser1.Navigate(ExtractFilePath(ParamStr(0))+'main.htm');
-  tray(1);
+  end else begin
+    DefLng:=true;
+    Application.Title:='Notification center';
+    AboutBtn.Caption:='About...';
+    ExitBtn.Caption:='Exit';
+  end;
+
+  WebView.Silent:=true;
+  WebView.Navigate(ExtractFilePath(ParamStr(0)) + 'main.htm');
+  Tray(1);
   SetWindowLong(Application.Handle, GWL_EXSTYLE, GetWindowLong(Application.Handle, GWL_EXSTYLE) or WS_EX_TOOLWINDOW);
   MyHide;
   Notifications:=TStringList.Create;
-  if FileExists(ExtractFilePath(ParamStr(0))+'Notifications.txt') then
-    Notifications.LoadFromFile(ExtractFilePath(ParamStr(0))+'Notifications.txt');
+  if FileExists(ExtractFilePath(ParamStr(0)) + 'Notifications.txt') then
+    Notifications.LoadFromFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
   ExcludeList:=TStringList.Create;
-  if FileExists(ExtractFilePath(ParamStr(0))+'Exclude.txt') then
-    ExcludeList.LoadFromFile(ExtractFilePath(ParamStr(0))+'Exclude.txt');
+  if FileExists(ExtractFilePath(ParamStr(0)) + 'Exclude.txt') then
+    ExcludeList.LoadFromFile(ExtractFilePath(ParamStr(0)) + 'Exclude.txt');
 end;
 
-procedure TForm1.WebBrowser1BeforeNavigate2(Sender: TObject;
+procedure TMain.WebViewBeforeNavigate2(Sender: TObject;
   const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
   Headers: OleVariant; var Cancel: WordBool);
 var
   sUrl:string;
 begin
-  sUrl:=ExtractFileName(StringReplace(url,'/','\',[rfReplaceAll]));
-  if pos('main.htm',sUrl)=0 then Cancel:=true;
+  sUrl:=ExtractFileName(StringReplace(url, '/', '\', [rfReplaceAll]));
+  if Pos('main.htm', sUrl) = 0 then Cancel:=true;
 
-  if sUrl='main.htm#1' then begin
-    WebBrowser1.OleObject.Document.getElementById('items').innerHTML:='';
+  if sUrl = 'main.htm#1' then begin
+    WebView.OleObject.Document.getElementById('items').innerHTML:='';
     Notifications.Clear;
-    Notifications.SaveToFile(ExtractFilePath(ParamStr(0))+'Notifications.txt');
+    Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
   end;
 end;
 
-procedure TForm1.WebBrowser1DocumentComplete(Sender: TObject;
+procedure TMain.WebViewDocumentComplete(Sender: TObject;
   const pDisp: IDispatch; var URL: OleVariant);
 var
   sUrl:string;
 begin
-  if pDisp=(Sender as TWebBrowser).Application then begin
-    sUrl:=ExtractFileName(StringReplace(url,'/','\',[rfReplaceAll]));
-    if sUrl='main.htm' then begin
+  if pDisp = (Sender as TWebBrowser).Application then begin
+    sUrl:=ExtractFileName(StringReplace(url, '/', '\', [rfReplaceAll]));
+    if sUrl = 'main.htm' then begin
       Application.ProcessMessages;
-      if WebBrowser1.Document <> nil then begin
-        WebBrowser1.OleObject.Document.getElementById('items').innerHTML:=Notifications.Text;
+      if WebView.Document <> nil then begin
+        WebView.OleObject.Document.getElementById('items').innerHTML:=Notifications.Text;
         if DefLng then begin
-          WebBrowser1.OleObject.Document.getElementById('title').innerHTML:='Notifications';
-          WebBrowser1.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#1'';">DELETE ALL</a>';
+          WebView.OleObject.Document.getElementById('title').innerHTML:='Notifications';
+          WebView.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#1'';">DELETE ALL</a>';
         end;
       end;
       Caption:='Notification center';
@@ -175,90 +173,106 @@ end;
 
 function MyTime: string;
 begin
-  Result:=Copy(TimeToStr(Time),1,5);
-  if Result[Length(Result)]=':' then
-    Result:=Copy(Result,1,Length(Result)-1);
+  Result:=Copy(TimeToStr(Time), 1, 5);
+  if Result[Length(Result)] = ':' then
+    Result:=Copy(Result, 1, Length(Result) - 1);
 end;
 
-procedure TForm1.WMCopyData(var Msg: TWMCopyData);
+procedure TMain.WMCopyData(var Msg: TWMCopyData);
 var
-  a_notify,a_title,a_desc,a_desc_sub,p_img,p_img2,a_color:String;
+  NotifyMsg, NotifyTitle, Desc, DescSub, BigImage, SmallImage, NotifyColor: string;
 begin
-  if copy(PChar(TWMCopyData(Msg).CopyDataStruct.lpData),1,7)='NOTIFY ' then begin
-    a_notify:=PChar(TWMCopyData(Msg).CopyDataStruct.lpData);
-    delete(a_notify,1,8);
+  if Copy(PChar(TWMCopyData(Msg).CopyDataStruct.lpData), 1, 7) = 'NOTIFY ' then begin
+    NotifyMsg:=PChar(TWMCopyData(Msg).CopyDataStruct.lpData);
+    Delete(NotifyMsg, 1, 8);
 
-    a_title:=copy(a_notify,1,pos('"',a_notify)-1);
-    delete(a_notify,1,pos('"',a_notify)+2);
+    NotifyTitle:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
+    Delete(NotifyMsg, 1, Pos('"', NotifyMsg) + 2);
 
-    if (a_title<>'null') and (pos(a_title,ExcludeList.Text)>0) then Exit;
+    if Pos(NotifyTitle, ExcludeList.Text) > 0 then Exit;
 
-    a_desc:=copy(a_notify,1,pos('"',a_notify)-1);
-    delete(a_notify,1,pos('"',a_notify)+2);
+    Desc:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
+    Delete(NotifyMsg, 1, Pos('"', NotifyMsg) + 2);
 
-    a_desc_sub:=copy(a_notify,1,pos('"',a_notify)-1);
-    delete(a_notify,1,pos('"',a_notify)+2);
+    DescSub:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
+    Delete(NotifyMsg, 1, Pos('"',NotifyMsg) + 2);
 
-    p_img:=copy(a_notify,1,pos('"',a_notify)-1);
-    delete(a_notify,1,pos('"',a_notify)+2);
+    BigImage:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
+    Delete(NotifyMsg, 1, Pos('"',NotifyMsg) + 2);
 
-    p_img2:=copy(a_notify,1,pos('"',a_notify)-1);
-    delete(a_notify,1,pos('"',a_notify)+2);
+    SmallImage:=Copy(NotifyMsg, 1, Pos('"',NotifyMsg) - 1);
+    Delete(NotifyMsg, 1, Pos('"', NotifyMsg) + 2);
 
-    a_color:=copy(a_notify,1,pos('"',a_notify)-1);
+    NotifyColor:=Copy(NotifyMsg, 1, Pos('"',NotifyMsg)-1);
 
-    if (p_img<>'null') and (p_img2<>'null') then p_img:=p_img2;
-    if (p_img<>'null') and (p_img2='null') then p_img:=p_img;
-    if (p_img='null') and (p_img2<>'null') then p_img:=p_img2;
-    if (p_img='null') and (p_img2='null') then p_img:='sys.png';
+    if BigImage = 'null' then BigImage:='sys.png';
+    if SmallImage <> 'null' then BigImage:=SmallImage;
 
-    if (a_desc<>'null') and (a_desc_sub<>'null') then a_desc:=a_desc+' - '+a_desc_sub;
-    if (a_desc<>'null') and (a_desc_sub='null') then a_desc:=a_desc;
-    if (a_desc='null') and (a_desc_sub<>'null') then a_desc:=a_desc_sub;
-    if (a_desc='null') and (a_desc_sub='null') then a_desc:='';
+    if (Desc <> 'null') and (DescSub <> 'null') then Desc:=Desc + ' - ' + DescSub;
+    if (Desc = 'null') and (DescSub <> 'null') then Desc:=DescSub;
+    if (Desc = 'null') and (DescSub = 'null') then Desc:='';
 
-    if a_title='null' then if DefLng then a_title:='Unkwnon application' else a_title:='Неизвестное приложение';
+    if NotifyTitle = 'null' then
+      if DefLng then NotifyTitle:='Unkwnon application'
+        else NotifyTitle:='Неизвестное приложение';
 
-    if a_color<>'null' then begin
-    case a_color[1] of
-      '0': a_color:='#00acee';
-      '1': a_color:='#235d82';
-      '2': a_color:='#018399';
-      '3': a_color:='#008a00';
-      '4': a_color:='#5133ab';
-      '5': a_color:='#8b0094';
-      '6': a_color:='#ac193d';
-      '7': a_color:='#222222';
-      end; end else a_color:='gray';
+    if NotifyColor <> 'null' then begin
+      case NotifyColor[1] of
+        '0': NotifyColor:='#00acee';
+        '1': NotifyColor:='#235d82';
+        '2': NotifyColor:='#018399';
+        '3': NotifyColor:='#008a00';
+        '4': NotifyColor:='#5133ab';
+        '5': NotifyColor:='#8b0094';
+        '6': NotifyColor:='#ac193d';
+        '7': NotifyColor:='#222222';
+        end;
+    end else NotifyColor:='gray';
 
-    WebBrowser1.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:'+a_color+';"><img src="'+p_img+'" /></div><div id="context"><div id="title">'+a_title+'</div><div id="clear"></div><div id="description">'+a_desc+'</div></div><div id="time">'+MyTime+'<br>'+DateToStr(Date)+'</div></div>'+WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
-    Notifications.Text:=WebBrowser1.OleObject.Document.getElementById('items').innerHTML;
-    Notifications.SaveToFile(ExtractFilePath(ParamStr(0))+'Notifications.txt');
+    WebView.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:' +
+      NotifyColor + ';"><img src="' + BigImage + '" /></div><div id="context"><div id="title">' +
+      NotifyTitle + '</div><div id="clear"></div><div id="description">' + Desc +' </div></div><div id="time">' + MyTime + '<br>' +
+      DateToStr(Date) + '</div></div>' + WebView.OleObject.Document.getElementById('items').innerHTML;
+      
+    Notifications.Text:=WebView.OleObject.Document.getElementById('items').innerHTML;
+    Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
   end;
   Msg.Result:=Integer(True);
 end;
 
-procedure TForm1.FormClick(Sender: TObject);
+procedure TMain.WMActivate(var Msg: TMessage);
 begin
-  Application.MessageBox(PChar(Application.Title+' 0.4.2'+#13#10+'https://github.com/r57zone'+#13#10+'Последнее обновление: 11.08.2016'),'О программе...',0);
+  if Msg.WParam = WA_INACTIVE then MyHide;
 end;
 
-procedure TForm1.WMActivate(var Msg: TMessage);
-begin
-  if Msg.WParam=WA_INACTIVE then MyHide;
-end;
-
-procedure TForm1.FormDestroy(Sender: TObject);
+procedure TMain.FormDestroy(Sender: TObject);
 begin
   Notifications.Free;
   ExcludeList.Free;
   Tray(2);
 end;
 
-procedure TForm1.DefaultHandler(var Message);
+procedure TMain.DefaultHandler(var Message);
 begin
   if TMessage(Message).Msg = WM_TASKBARCREATED then Tray(1);
   inherited;
+end;
+
+procedure TMain.AboutBtnClick(Sender: TObject);
+begin
+  if DefLng then
+      Application.MessageBox(PChar(Application.Title+ ' 0.4.3' + #13#10
+      + 'Last update: 28.05.2017' + #13#10
+      + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'), 'About...',0)
+  else
+    Application.MessageBox(PChar(Application.Title+ ' 0.4.3' + #13#10
+      + 'Последнеее обновление: 28.05.2017' + #13#10
+      + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'), 'О программе...',0);
+end;
+
+procedure TMain.ExitBtnClick(Sender: TObject);
+begin
+  Close;
 end;
 
 end.

@@ -1,4 +1,4 @@
-object Form1: TForm1
+object Main: TMain
   Left = 192
   Top = 124
   BorderStyle = bsSingle
@@ -11,19 +11,18 @@ object Form1: TForm1
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
-  OnClick = FormClick
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
-  object WebBrowser1: TWebBrowser
+  object WebView: TWebBrowser
     Left = 0
     Top = 0
     Width = 390
     Height = 306
     TabOrder = 0
-    OnBeforeNavigate2 = WebBrowser1BeforeNavigate2
-    OnDocumentComplete = WebBrowser1DocumentComplete
+    OnBeforeNavigate2 = WebViewBeforeNavigate2
+    OnDocumentComplete = WebViewDocumentComplete
     ControlData = {
       4C0000004F280000A01F00000000000000000000000000000000000000000000
       000000004C000000000000000000000001000000E0D057007335CF11AE690800
@@ -34,5 +33,20 @@ object Form1: TForm1
   object XPManifest1: TXPManifest
     Left = 8
     Top = 8
+  end
+  object PopupMenu: TPopupMenu
+    Left = 40
+    Top = 8
+    object AboutBtn: TMenuItem
+      Caption = #1054' '#1087#1088#1086#1075#1088#1072#1084#1084#1077'...'
+      OnClick = AboutBtnClick
+    end
+    object N2: TMenuItem
+      Caption = '-'
+    end
+    object ExitBtn: TMenuItem
+      Caption = #1042#1099#1093#1086#1076
+      OnClick = ExitBtnClick
+    end
   end
 end
