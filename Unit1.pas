@@ -10,10 +10,10 @@ uses
 type
   TMain = class(TForm)
     WebView: TWebBrowser;
-    XPManifest1: TXPManifest;
+    XPManifest: TXPManifest;
     PopupMenu: TPopupMenu;
     AboutBtn: TMenuItem;
-    N2: TMenuItem;
+    LineItem: TMenuItem;
     ExitBtn: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure WebViewBeforeNavigate2(Sender: TObject;
@@ -26,7 +26,10 @@ type
     procedure ExitBtnClick(Sender: TObject);
   private
     procedure WMCopyData(var Msg: TWMCopyData); message WM_COPYDATA;
+    procedure WMNCHITTEST(var Msg: TMessage); message WM_NCHITTEST;
     procedure DefaultHandler(var Message); override;
+    procedure MyShow;
+    procedure MyHide;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
     procedure IconMouse(var Msg:TMessage); message WM_USER+1;
@@ -39,25 +42,25 @@ type
 var
   Main: TMain;
   Notifications, ExcludeList: TStringList;
-  DefLng: boolean;
+  DefaultLanguage: boolean;
   WM_TaskBarCreated: Cardinal;
 
 implementation
 
 {$R *.dfm}
 
-procedure MyShow;
+procedure TMain.MyShow;
 begin
-  Main.Left:=Screen.Width - Main.Width-15;
-  Main.Top:=Screen.Height - Main.Height-57;
-  Application.ProcessMessages;
-  if Main.WebView.Document <> nil then (Main.WebView.Document as IHTMLDocument2).ParentWindow.Focus;
+  Top:=Screen.Height - Main.Height - 57;
+  Left:=Screen.Width - Main.Width - 15;
+  if WebView.Document <> nil then
+    (WebView.Document as IHTMLDocument2).ParentWindow.Focus;
 end;
 
-procedure MyHide;
+procedure TMain.MyHide;
 begin
-  Main.Left:=0 - Main.Width;
-  Main.Top:=0 - Main.Height;
+  Left:=0 - Width;
+  Top:=0 - Height;
 end;
 
 procedure Tray(n:integer); //1 - добавить, 2 - удалить, 3 -  заменить
@@ -69,7 +72,8 @@ begin
     wnd:=Main.Handle;
     uId:=1;
     uFlags:=nif_icon or nif_message or nif_tip;
-    hIcon:=Application.Icon.Handle;
+    //hIcon:=THandle(SendMessage(Application.Handle, WM_GETICON, ICON_SMALL2, 0));
+    hIcon:=Main.Icon.Handle;
     uCallBackMessage:=WM_User + 1;
     StrCopy(szTip, PChar(Application.Title));
   end;
@@ -84,9 +88,11 @@ procedure TMain.IconMouse(var Msg: TMessage);
 begin
   case Msg.LParam of
     WM_LButtonDown:
-      if (Left = 0 - Width) and (Top = 0 - Height) then
-        MyShow else MyHide;
+      MyShow;
 
+    WM_LBUTTONDBLCLK:
+      MyHide;
+      
     WM_RButtonDown:
       PopupMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
   end;
@@ -112,10 +118,10 @@ begin
   WM_TaskBarCreated:=RegisterWindowMessage('TaskbarCreated');
 
   if GetLocaleInformation(LOCALE_SENGLANGUAGE) = 'Russian' then begin
-    DefLng:=false;
+    DefaultLanguage:=false;
     Application.Title:='Центр уведомлений';
   end else begin
-    DefLng:=true;
+    DefaultLanguage:=true;
     Application.Title:='Notification center';
     AboutBtn.Caption:='About...';
     ExitBtn.Caption:='Exit';
@@ -143,7 +149,7 @@ begin
   sUrl:=ExtractFileName(StringReplace(url, '/', '\', [rfReplaceAll]));
   if Pos('main.htm', sUrl) = 0 then Cancel:=true;
 
-  if sUrl = 'main.htm#1' then begin
+  if sUrl = 'main.htm#rm' then begin
     WebView.OleObject.Document.getElementById('items').innerHTML:='';
     Notifications.Clear;
     Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
@@ -161,9 +167,9 @@ begin
       Application.ProcessMessages;
       if WebView.Document <> nil then begin
         WebView.OleObject.Document.getElementById('items').innerHTML:=Notifications.Text;
-        if DefLng then begin
+        if DefaultLanguage then begin
           WebView.OleObject.Document.getElementById('title').innerHTML:='Notifications';
-          WebView.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#1'';">DELETE ALL</a>';
+          WebView.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#rm'';">DELETE ALL</a>';
         end;
       end;
       Caption:='Notification center';
@@ -213,7 +219,7 @@ begin
     if (Desc = 'null') and (DescSub = 'null') then Desc:='';
 
     if NotifyTitle = 'null' then
-      if DefLng then NotifyTitle:='Unkwnon application'
+      if DefaultLanguage then NotifyTitle:='Unkwnon application'
         else NotifyTitle:='Неизвестное приложение';
 
     if NotifyColor <> 'null' then begin
@@ -242,7 +248,8 @@ end;
 
 procedure TMain.WMActivate(var Msg: TMessage);
 begin
-  if Msg.WParam = WA_INACTIVE then MyHide;
+  if Msg.WParam = WA_INACTIVE then
+    MyHide;
 end;
 
 procedure TMain.FormDestroy(Sender: TObject);
@@ -254,25 +261,31 @@ end;
 
 procedure TMain.DefaultHandler(var Message);
 begin
-  if TMessage(Message).Msg = WM_TASKBARCREATED then Tray(1);
+  if TMessage(Message).Msg = WM_TASKBARCREATED then
+    Tray(1);
   inherited;
 end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  if DefLng then
-      Application.MessageBox(PChar(Application.Title+ ' 0.4.3' + #13#10
-      + 'Last update: 28.05.2017' + #13#10
-      + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'), 'About...',0)
+  if DefaultLanguage then
+      Application.MessageBox(PChar(Application.Title + ' 0.5' + #13#10
+      + 'Last update: 25.12.2017' + #13#10
+      + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'), 'About...', MB_ICONINFORMATION)
   else
-    Application.MessageBox(PChar(Application.Title+ ' 0.4.3' + #13#10
-      + 'Последнеее обновление: 28.05.2017' + #13#10
-      + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'), 'О программе...',0);
+    Application.MessageBox(PChar(Application.Title + ' 0.5' + #13#10
+      + 'Последнеее обновление: 25.12.2017' + #13#10
+      + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'), 'О программе...', MB_ICONINFORMATION);
 end;
 
 procedure TMain.ExitBtnClick(Sender: TObject);
 begin
   Close;
+end;
+
+procedure TMain.WMNCHITTEST(var Msg: TMessage);
+begin
+  Msg.Result:=HTCLIENT;
 end;
 
 end.
