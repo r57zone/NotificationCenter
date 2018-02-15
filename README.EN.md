@@ -4,7 +4,7 @@
 Alternative notification center for Windows. Compatible with [notifications for programs](https://github.com/r57zone/notifications).
 
 ## Screenshots
-![](https://cloud.githubusercontent.com/assets/9499881/18412086/5110bc18-7797-11e6-817b-224dc7c79c6b.png)
+![](https://user-images.githubusercontent.com/9499881/36250978-fbbba1c0-1258-11e8-8ef8-c3ec62ac554f.png)
 
 ## Setup
 Before starting, you must run "ie8_enable.reg" file to correctly display interface.<br>

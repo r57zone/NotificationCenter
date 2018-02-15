@@ -4,7 +4,7 @@
 Альтернативный центр уведомлений для Windows. Совместимо с [уведомлениями для программ](https://github.com/r57zone/notifications).
 
 ## Скриншоты
-![](https://cloud.githubusercontent.com/assets/9499881/18412085/50e532a0-7797-11e6-80bd-7d63bd899628.png)
+![](https://user-images.githubusercontent.com/9499881/36250925-cb506156-1258-11e8-8c31-e52e8bbed1fa.png)
 
 ## Настройка
 Перед запуском необходимо запустить файл "ie8_enable.reg" для корректного отображения интерфейса.<br>
