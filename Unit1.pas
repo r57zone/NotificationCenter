@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, OleCtrls, SHDocVw, MSHTML, ShellAPI, StdCtrls, ExtCtrls, XPMan,
-  Menus;
+  Menus, ImgList, IniFiles;
 
 type
   TMain = class(TForm)
@@ -15,6 +15,7 @@ type
     AboutBtn: TMenuItem;
     LineItem: TMenuItem;
     ExitBtn: TMenuItem;
+    Icons: TImageList;
     procedure FormCreate(Sender: TObject);
     procedure WebViewBeforeNavigate2(Sender: TObject;
       const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
@@ -42,8 +43,10 @@ type
 var
   Main: TMain;
   Notifications, ExcludeList: TStringList;
-  DefaultLanguage: boolean;
   WM_TaskBarCreated: Cardinal;
+  IconIndex: byte;
+  IconFull: TIcon;
+  ID_NOTIFICATIONS, ID_DELETE_ALL, ID_UNKNOWN_APP, ID_LAST_UPDATE: string;
 
 implementation
 
@@ -63,7 +66,7 @@ begin
   Top:=0 - Height;
 end;
 
-procedure Tray(n:integer); //1 - добавить, 2 - удалить, 3 -  заменить
+procedure Tray(ActInd: integer); //1 - добавить, 2 - удалить, 3 -  заменить
 var
   nim: TNotifyIconData;
 begin
@@ -72,12 +75,16 @@ begin
     wnd:=Main.Handle;
     uId:=1;
     uFlags:=nif_icon or nif_message or nif_tip;
-    //hIcon:=THandle(SendMessage(Application.Handle, WM_GETICON, ICON_SMALL2, 0));
-    hIcon:=Main.Icon.Handle;
+
+    if IconIndex = 0 then
+      hIcon:=SendMessage(Application.Handle, WM_GETICON, ICON_SMALL2, 0)
+    else
+      hIcon:=IconFull.Handle;
+
     uCallBackMessage:=WM_User + 1;
     StrCopy(szTip, PChar(Application.Title));
   end;
-  case n of
+  case ActInd of
     1: Shell_NotifyIcon(nim_add, @nim);
     2: Shell_NotifyIcon(nim_delete, @nim);
     3: Shell_NotifyIcon(nim_modify, @nim);
@@ -88,11 +95,15 @@ procedure TMain.IconMouse(var Msg: TMessage);
 begin
   case Msg.LParam of
     WM_LButtonDown:
-      MyShow;
+      begin
+        MyShow;
+        IconIndex:=0;
+        Tray(3);
+      end;
 
     WM_LBUTTONDBLCLK:
       MyHide;
-      
+
     WM_RButtonDown:
       PopupMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
   end;
@@ -104,28 +115,43 @@ begin
   Params.Style:=WS_POPUP or WS_THICKFRAME;
 end;
 
-function GetLocaleInformation(Flag: Integer): string;
+function GetLocaleInformation(flag: integer): string;
 var
   pcLCA: array [0..20] of Char;
 begin
-  if GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, Flag, pcLCA, 19)<=0 then
+  if GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, flag, pcLCA, 19)<=0 then
     pcLCA[0]:=#0;
   Result:=pcLCA;
 end;
 
 procedure TMain.FormCreate(Sender: TObject);
+var
+  Ini: TIniFile;
 begin
-  WM_TaskBarCreated:=RegisterWindowMessage('TaskbarCreated');
+  Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Config.ini');
+  IconIndex:=Ini.ReadInteger('Main', 'NewMessages', 0);
+  Ini.Free;
+  IconFull:=TIcon.Create;
+  Icons.GetIcon(0, IconFull);
 
-  if GetLocaleInformation(LOCALE_SENGLANGUAGE) = 'Russian' then begin
-    DefaultLanguage:=false;
-    Application.Title:='Центр уведомлений';
-  end else begin
-    DefaultLanguage:=true;
-    Application.Title:='Notification center';
-    AboutBtn.Caption:='About...';
-    ExitBtn.Caption:='Exit';
-  end;
+  //Перевод / Translate
+  if FileExists(ExtractFilePath(ParamStr(0)) + 'Languages\' + GetLocaleInformation(LOCALE_SENGLANGUAGE) + '.ini') then
+    Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Languages\' + GetLocaleInformation(LOCALE_SENGLANGUAGE) + '.ini')
+  else
+    Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Languages\English.ini');
+
+  Application.Title:=Ini.ReadString('Main', 'ID_TITLE', '');
+  ID_NOTIFICATIONS:=Ini.ReadString('Main', 'ID_NOTIFICATIONS', '');
+  ID_DELETE_ALL:=Ini.ReadString('Main', 'ID_DELETE_ALL', '');
+  ID_UNKNOWN_APP:=Ini.ReadString('Main', 'ID_UNKNOWN_APP', '');
+  AboutBtn.Caption:=Ini.ReadString('Main', 'ID_ABOUT_TITLE', '');
+  ID_LAST_UPDATE:=Ini.ReadString('Main', 'ID_LAST_UPDATE', '');
+  ExitBtn.Caption:=Ini.ReadString('Main', 'ID_EXIT', '');
+  
+  Ini.Free;
+  //
+
+  WM_TaskBarCreated:=RegisterWindowMessage('TaskbarCreated');
 
   WebView.Silent:=true;
   WebView.Navigate(ExtractFilePath(ParamStr(0)) + 'main.htm');
@@ -167,10 +193,8 @@ begin
       Application.ProcessMessages;
       if WebView.Document <> nil then begin
         WebView.OleObject.Document.getElementById('items').innerHTML:=Notifications.Text;
-        if DefaultLanguage then begin
-          WebView.OleObject.Document.getElementById('title').innerHTML:='Notifications';
-          WebView.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#rm'';">DELETE ALL</a>';
-        end;
+        WebView.OleObject.Document.getElementById('title').innerHTML:=ID_NOTIFICATIONS;
+        WebView.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#rm'';">' + ID_DELETE_ALL + '</a>';
       end;
       Caption:='Notification center';
     end;
@@ -186,9 +210,13 @@ end;
 
 procedure TMain.WMCopyData(var Msg: TWMCopyData);
 var
-  NotifyMsg, NotifyTitle, Desc, DescSub, BigImage, SmallImage, NotifyColor: string;
+  NotifyMsg, NotifyTitle, Desc, DescSub, BigIcon, SmallIcon, NotifyColor: string;
 begin
   if Copy(PChar(TWMCopyData(Msg).CopyDataStruct.lpData), 1, 7) = 'NOTIFY ' then begin
+
+    IconIndex:=1;
+    Tray(3);
+
     NotifyMsg:=PChar(TWMCopyData(Msg).CopyDataStruct.lpData);
     Delete(NotifyMsg, 1, 8);
 
@@ -203,24 +231,23 @@ begin
     DescSub:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
     Delete(NotifyMsg, 1, Pos('"',NotifyMsg) + 2);
 
-    BigImage:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
+    BigIcon:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
     Delete(NotifyMsg, 1, Pos('"',NotifyMsg) + 2);
 
-    SmallImage:=Copy(NotifyMsg, 1, Pos('"',NotifyMsg) - 1);
+    SmallIcon:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
     Delete(NotifyMsg, 1, Pos('"', NotifyMsg) + 2);
 
-    NotifyColor:=Copy(NotifyMsg, 1, Pos('"',NotifyMsg)-1);
+    NotifyColor:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg)-1);
 
-    if BigImage = 'null' then BigImage:='sys.png';
-    if SmallImage <> 'null' then BigImage:=SmallImage;
+    if BigIcon = 'null' then BigIcon:='sys.png';
+    if SmallIcon <> 'null' then BigIcon:=SmallIcon;
 
     if (Desc <> 'null') and (DescSub <> 'null') then Desc:=Desc + ' - ' + DescSub;
     if (Desc = 'null') and (DescSub <> 'null') then Desc:=DescSub;
     if (Desc = 'null') and (DescSub = 'null') then Desc:='';
 
     if NotifyTitle = 'null' then
-      if DefaultLanguage then NotifyTitle:='Unkwnon application'
-        else NotifyTitle:='Неизвестное приложение';
+      NotifyTitle:=ID_UNKNOWN_APP;
 
     if NotifyColor <> 'null' then begin
       case NotifyColor[1] of
@@ -236,7 +263,7 @@ begin
     end else NotifyColor:='gray';
 
     WebView.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:' +
-      NotifyColor + ';"><img src="' + BigImage + '" /></div><div id="context"><div id="title">' +
+      NotifyColor + ';"><img src="' + BigIcon + '" /></div><div id="context"><div id="title">' +
       NotifyTitle + '</div><div id="clear"></div><div id="description">' + Desc +' </div></div><div id="time">' + MyTime + '<br>' +
       DateToStr(Date) + '</div></div>' + WebView.OleObject.Document.getElementById('items').innerHTML;
       
@@ -253,10 +280,16 @@ begin
 end;
 
 procedure TMain.FormDestroy(Sender: TObject);
+var
+  Ini: TIniFile;
 begin
+  Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Config.ini');
+  Ini.WriteInteger('Main', 'NewMessages', IconIndex);
+  Ini.Free;
   Notifications.Free;
   ExcludeList.Free;
   Tray(2);
+  IconFull.Free;
 end;
 
 procedure TMain.DefaultHandler(var Message);
@@ -268,14 +301,10 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  if DefaultLanguage then
-      Application.MessageBox(PChar(Application.Title + ' 0.5' + #13#10
-      + 'Last update: 25.12.2017' + #13#10
-      + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'), 'About...', MB_ICONINFORMATION)
-  else
-    Application.MessageBox(PChar(Application.Title + ' 0.5' + #13#10
-      + 'Последнеее обновление: 25.12.2017' + #13#10
-      + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'), 'О программе...', MB_ICONINFORMATION);
+  Application.MessageBox(PChar(Application.Title + ' 0.6' + #13#10
+    + ID_LAST_UPDATE + ' 26.07.2018' + #13#10
+    + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'),
+    PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
 
 procedure TMain.ExitBtnClick(Sender: TObject);
