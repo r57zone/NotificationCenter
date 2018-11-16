@@ -3,43 +3,42 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>Центр уведомлений (стиль)</title>
-<link rel="stylesheet" href="all.css">
 <style type="text/css">
 *{cursor:default;}
-html,body{margin:0px;padding:0px;}
-body{font-family: Segoe UI;font-weight:lighter;color:#666666;}
-#clear{clear:both;float:none;height:0;}
+html,body{margin:0px; padding:0px;}
+body{font-family: Segoe UI; font-weight:lighter; color:#666666;}
+#clear{clear:both; float:none; height:0;}
 
-#header{color:#878787;margin:0 18px 10px 18px;}
-#header #title{float:left;font-size:20px;font-weight:500;}
-#clear_btn{float:right;margin-top:4px;}
-a{text-decoration:none;font-size:12px;cursor:pointer;font-weight:500;padding:10px;}
+#header{color:#878787; margin:0 18px 10px 18px;}
+#header #title{float:left; font-size:20px; font-weight:500;}
+#clear_btn{float:right; margin-top:1px;}
+a{text-decoration:none; font-size:12px; cursor:pointer; font-weight:500; padding:10px;}
 a:hover{color:#3a66cc;}
 
-#items{overflow:auto;height:250px;color:#545454;}
+#items{overflow:auto; height:250px; color:#545454;}
 
-#item{margin:18px 22px 0 18px;height:45px;overflow:hidden;}
+#item{margin:18px 22px 0 18px; height:45px; overflow:hidden;}
 #item:first-child{margin:0 22px 0 18px;}
 #item:hover{background-color:#f1f1f1;}
-#icon{position:relative;float:left;width:45px;height:45px;}
-#icon img{position:absolute;top:0;bottom:0;left:0;right:0;margin:auto;max-width:45px;max-height:45px;}
+#icon{position:relative; float:left; width:45px; height:45px;}
+#icon img{position:absolute; top:0; bottom:0; left:0; right:0; margin:auto; max-width:45px; max-height:45px;}
 #context{float:left;}
-#item #title{float:left;padding:0 5px 2px 5px;font-weight:600;width:208px;overflow:hidden;height:22px;text-overflow:ellipsis;}
-#description{float:left;font-size:12px;padding:0 5px;font-weight:400;width:208px;overflow:hidden;height:18px;text-overflow:ellipsis;}
-#time{position:relative;top:0;float:right;padding:7px 4px 0 0;font-weight:500;font-size:13px;text-align:right;}
+#item #title{float:left; font-size:14px; padding:0 5px 2px 5px; font-weight:600; width:208px; overflow:hidden; height:22px; text-overflow:ellipsis;}
+#description{float:left; font-size:12px; padding:0 5px; font-weight:400; width:208px; overflow:hidden; height:18px; text-overflow:ellipsis;}
+#time{position:relative; top:0; float:right; padding:6px 4px 0 0; font-weight:500; font-size:13px; text-align:right;}
 </style>
 </head>
 <body oncontextmenu="return false" onselectstart="return false">
 <div id="header">
 	<div id="title">Уведомления</div>
 	<div id="clear_btn">
-		<a onclick="document.location='#rm';">УДАЛИТЬ ВСЕ</a>
+		<a onclick="document.location='#rm'; ">УДАЛИТЬ ВСЕ</a>
 	</div>
 </div>
 <div id="clear"></div>
 <div style="height:20px;"></div>
 <div id="items">
-	<!--<div id="item"><div id="icon" style="background-color:gray;"><img src="2.png" /></div><div id="context"><div id="title">Заголовок</div><div id="clear"></div><div id="description">Описание</div></div><div id="time">18:00</div></div>-->
+	<!--<div id="item"><div id="icon" style="background-color:gray; "><img src="2.png" /></div><div id="context"><div id="title">Заголовок</div><div id="clear"></div><div id="description">Описание</div></div><div id="time">18:00</div></div>-->
 </div>
 </body>
 </html>

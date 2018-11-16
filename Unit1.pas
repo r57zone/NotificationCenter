@@ -33,8 +33,8 @@ type
     procedure MyHide;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
-    procedure IconMouse(var Msg:TMessage); message WM_USER+1;
-    procedure WMActivate(var Msg:TMessage); message WM_ACTIVATE;
+    procedure IconMouse(var Msg: TMessage); message WM_USER + 1;
+    procedure WMActivate(var Msg: TMessage); message WM_ACTIVATE;
     { Private declarations }
   public
     { Public declarations }
@@ -47,6 +47,8 @@ var
   IconIndex: byte;
   IconFull: TIcon;
   ID_NOTIFICATIONS, ID_DELETE_ALL, ID_UNKNOWN_APP, ID_LAST_UPDATE: string;
+  MainWidth, MainHeight: integer;
+  RunOnce: boolean;
 
 implementation
 
@@ -54,47 +56,54 @@ implementation
 
 procedure TMain.MyShow;
 begin
-  Top:=Screen.Height - Main.Height - 57;
-  Left:=Screen.Width - Main.Width - 15;
+  if RunOnce = false then begin
+    Width:=MainWidth;
+    Height:=MainHeight;
+    RunOnce:=true;
+  end;
+  SetWindowLong(Handle, GWL_STYLE, GetWindowLong(Handle, GWL_STYLE) or WS_POPUP or WS_THICKFRAME);
+  Top:=Screen.Height - Main.Height - 54;
+  Left:=Screen.Width - Main.Width - 8;
   if WebView.Document <> nil then
     (WebView.Document as IHTMLDocument2).ParentWindow.Focus;
+  ShowWindow(Handle, SW_SHOW);
 end;
 
 procedure TMain.MyHide;
 begin
-  Left:=0 - Width;
-  Top:=0 - Height;
+  SetWindowLong(Handle, GWL_STYLE, GetWindowLong(Handle, GWL_STYLE) and not WS_POPUP and not WS_THICKFRAME);
+  ShowWindow(Handle, SW_HIDE);
 end;
 
 procedure Tray(ActInd: integer); //1 - добавить, 2 - удалить, 3 -  заменить
 var
   nim: TNotifyIconData;
 begin
-  with nim do begin
+  with NIM do begin
     cbSize:=SizeOf(nim);
-    wnd:=Main.Handle;
+    Wnd:=Main.Handle;
     uId:=1;
-    uFlags:=nif_icon or nif_message or nif_tip;
+    uFlags:=NIF_MESSAGE or NIF_ICON or NIF_TIP;
 
     if IconIndex = 0 then
       hIcon:=SendMessage(Application.Handle, WM_GETICON, ICON_SMALL2, 0)
     else
       hIcon:=IconFull.Handle;
 
-    uCallBackMessage:=WM_User + 1;
+    uCallBackMessage:=WM_USER + 1;
     StrCopy(szTip, PChar(Application.Title));
   end;
   case ActInd of
-    1: Shell_NotifyIcon(nim_add, @nim);
-    2: Shell_NotifyIcon(nim_delete, @nim);
-    3: Shell_NotifyIcon(nim_modify, @nim);
+    1: Shell_NotifyIcon(NIM_ADD, @nim);
+    2: Shell_NotifyIcon(NIM_DELETE, @nim);
+    3: Shell_NotifyIcon(NIM_MODIFY, @nim);
   end;
 end;
 
 procedure TMain.IconMouse(var Msg: TMessage);
 begin
   case Msg.LParam of
-    WM_LButtonDown:
+    WM_LBUTTONDOWN:
       begin
         MyShow;
         IconIndex:=0;
@@ -104,7 +113,7 @@ begin
     WM_LBUTTONDBLCLK:
       MyHide;
 
-    WM_RButtonDown:
+    WM_RBUTTONDOWN:
       PopupMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
   end;
 end;
@@ -128,6 +137,11 @@ procedure TMain.FormCreate(Sender: TObject);
 var
   Ini: TIniFile;
 begin
+  MainWidth:=Width;
+  MainHeight:=Height;
+  Width:=0;
+  Height:=0;
+  
   Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Config.ini');
   IconIndex:=Ini.ReadInteger('Main', 'NewMessages', 0);
   Ini.Free;
@@ -277,6 +291,7 @@ procedure TMain.WMActivate(var Msg: TMessage);
 begin
   if Msg.WParam = WA_INACTIVE then
     MyHide;
+  inherited;
 end;
 
 procedure TMain.FormDestroy(Sender: TObject);
@@ -301,8 +316,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.6' + #13#10
-    + ID_LAST_UPDATE + ' 26.07.2018' + #13#10
+  Application.MessageBox(PChar(Application.Title + ' 0.6.1' + #13#10
+    + ID_LAST_UPDATE + ' 16.11.2018' + #13#10
     + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'),
     PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
