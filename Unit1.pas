@@ -47,7 +47,6 @@ var
   IconIndex: byte;
   IconFull: TIcon;
   ID_NOTIFICATIONS, ID_DELETE_ALL, ID_UNKNOWN_APP, ID_LAST_UPDATE: string;
-  MainWidth, MainHeight: integer;
   RunOnce: boolean;
 
 implementation
@@ -57,11 +56,9 @@ implementation
 procedure TMain.MyShow;
 begin
   if RunOnce = false then begin
-    Width:=MainWidth;
-    Height:=MainHeight;
+    Main.AlphaBlendValue:=255;
     RunOnce:=true;
   end;
-  SetWindowLong(Handle, GWL_STYLE, GetWindowLong(Handle, GWL_STYLE) or WS_POPUP or WS_THICKFRAME);
   Top:=Screen.Height - Main.Height - 54;
   Left:=Screen.Width - Main.Width - 8;
   if WebView.Document <> nil then
@@ -71,7 +68,6 @@ end;
 
 procedure TMain.MyHide;
 begin
-  SetWindowLong(Handle, GWL_STYLE, GetWindowLong(Handle, GWL_STYLE) and not WS_POPUP and not WS_THICKFRAME);
   ShowWindow(Handle, SW_HIDE);
 end;
 
@@ -137,11 +133,6 @@ procedure TMain.FormCreate(Sender: TObject);
 var
   Ini: TIniFile;
 begin
-  MainWidth:=Width;
-  MainHeight:=Height;
-  Width:=0;
-  Height:=0;
-  
   Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Config.ini');
   IconIndex:=Ini.ReadInteger('Main', 'NewMessages', 0);
   Ini.Free;
@@ -317,7 +308,7 @@ end;
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
   Application.MessageBox(PChar(Application.Title + ' 0.6.1' + #13#10
-    + ID_LAST_UPDATE + ' 16.11.2018' + #13#10
+    + ID_LAST_UPDATE + ' 17.11.2018' + #13#10
     + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'),
     PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
