@@ -7,7 +7,7 @@ Alternative notification center for Windows. Compatible with [notifications for 
 ![](https://user-images.githubusercontent.com/9499881/36250978-fbbba1c0-1258-11e8-8ef8-c3ec62ac554f.png)
 
 ## Setup
-Before starting, you must run "ie8_enable.reg" file to correctly display interface.<br>
+Before starting, you must run "ie11_enable.reg" file to correctly display interface.<br>
 To any notice did not appear in the center of notifications, you must add a line with the name of the notification to file "Exclude.txt", eg "LostFilm.TV".
 
 ## Download
