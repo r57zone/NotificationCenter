@@ -29,6 +29,8 @@ type
     procedure WMCopyData(var Msg: TWMCopyData); message WM_COPYDATA;
     procedure WMNCHITTEST(var Msg: TMessage); message WM_NCHITTEST;
     procedure DefaultHandler(var Message); override;
+    procedure AddNotification(NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor: string);
+    procedure LoadNotifications;
     procedure MyShow;
     procedure MyHide;
   protected
@@ -129,6 +131,44 @@ begin
   Result:=pcLCA;
 end;
 
+procedure TMain.AddNotification(NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor: string);
+begin
+  WebView.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:' +
+    NotifyColor + ';"><img src="' + NotifyIconPath + '" /></div><div id="context"><div id="title">' +
+    NotifyTitle + '</div><div id="clear"></div><div id="description">' + NotifyDesc +' </div></div><div id="time">' + NotifyTimeHM + '<br>' +
+    NotifyDate + '</div></div>' + WebView.OleObject.Document.getElementById('items').innerHTML;
+end;
+
+procedure TMain.LoadNotifications;
+var
+  NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor: string;
+  i: integer;
+  NotifyStr: string;
+begin
+  for i:=0 to Notifications.Count - 1 do begin
+    NotifyStr:=Notifications.Strings[i];
+
+    NotifyTitle:=Copy(NotifyStr, 1, Pos(#9, NotifyStr) - 1);
+    Delete(NotifyStr, 1, Pos(#9, NotifyStr));
+
+    NotifyDesc:=Copy(NotifyStr, 1, Pos(#9, NotifyStr) - 1);
+    Delete(NotifyStr, 1, Pos(#9, NotifyStr));
+
+    NotifyTimeHM:=Copy(NotifyStr, 1, Pos(#9, NotifyStr) - 1);
+    Delete(NotifyStr, 1, Pos(#9, NotifyStr));
+
+    NotifyDate:=Copy(NotifyStr, 1, Pos(#9, NotifyStr) - 1);
+    Delete(NotifyStr, 1, Pos(#9, NotifyStr));
+
+    NotifyIconPath:=Copy(NotifyStr, 1, Pos(#9, NotifyStr) - 1);
+    Delete(NotifyStr, 1, Pos(#9, NotifyStr));
+
+    NotifyColor:=NotifyStr;
+
+    AddNotification(NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor);
+  end;
+end;
+
 procedure TMain.FormCreate(Sender: TObject);
 var
   Ini: TIniFile;
@@ -175,7 +215,8 @@ procedure TMain.WebViewBeforeNavigate2(Sender: TObject;
   const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
   Headers: OleVariant; var Cancel: WordBool);
 var
-  sUrl:string;
+  sUrl: string;
+  NotifyTitle, NotifyDesciption: string;
 begin
   sUrl:=ExtractFileName(StringReplace(url, '/', '\', [rfReplaceAll]));
   if Pos('main.htm', sUrl) = 0 then Cancel:=true;
@@ -197,7 +238,7 @@ begin
     if sUrl = 'main.htm' then begin
       Application.ProcessMessages;
       if WebView.Document <> nil then begin
-        WebView.OleObject.Document.getElementById('items').innerHTML:=Notifications.Text;
+        LoadNotifications;
         WebView.OleObject.Document.getElementById('title').innerHTML:=ID_NOTIFICATIONS;
         WebView.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#rm'';">' + ID_DELETE_ALL + '</a>';
       end;
@@ -206,7 +247,7 @@ begin
   end;
 end;
 
-function MyTime: string;
+function CurrentTimeHM: string;
 begin
   Result:=Copy(TimeToStr(Time), 1, 5);
   if Result[Length(Result)] = ':' then
@@ -215,65 +256,64 @@ end;
 
 procedure TMain.WMCopyData(var Msg: TWMCopyData);
 var
-  NotifyMsg, NotifyTitle, Desc, DescSub, BigIcon, SmallIcon, NotifyColor: string;
+  NotifyTitle, NotifyDesc, DescSub, BigIcon, SmallIcon, NotifyColor: string;
+  NotifyMsg: TStringList;
+  i: integer;
 begin
-  if Copy(PChar(TWMCopyData(Msg).CopyDataStruct.lpData), 1, 7) = 'NOTIFY ' then begin
+  if Copy(PChar(TWMCopyData(Msg).CopyDataStruct.lpData), 1, 8) = '{NOTIFY}' then begin
 
-    IconIndex:=1;
-    Tray(3);
+    NotifyMsg:=TStringList.Create;
+    NotifyMsg.Text:=PChar(TWMCopyData(Msg).CopyDataStruct.lpData);
+    NotifyMsg.Text:=StringReplace(NotifyMsg.Text, #9, #13#10, [rfReplaceAll]);
+    NotifyMsg.Delete(0);
 
-    NotifyMsg:=PChar(TWMCopyData(Msg).CopyDataStruct.lpData);
-    Delete(NotifyMsg, 1, 8);
+    NotifyTitle:=ID_UNKNOWN_APP;
+    NotifyColor:='gray';
+    BigIcon:='Sys.png';
+    SmallIcon:='';
 
-    NotifyTitle:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
-    Delete(NotifyMsg, 1, Pos('"', NotifyMsg) + 2);
+    for i:=0 to NotifyMsg.Count - 2 do begin
+      if NotifyMsg.Strings[i] = '-t' then
+        NotifyTitle:=NotifyMsg.Strings[i + 1];
 
-    if Pos(NotifyTitle, ExcludeList.Text) > 0 then Exit;
+      if NotifyMsg.Strings[i] = '-d' then
+        NotifyDesc:=StringReplace(NotifyMsg.Strings[i + 1], '\n', ' - ', [rfReplaceAll]);
 
-    Desc:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
-    Delete(NotifyMsg, 1, Pos('"', NotifyMsg) + 2);
+      if NotifyMsg.Strings[i] = '-b' then
+        BigIcon:=NotifyMsg.Strings[i + 1];
 
-    DescSub:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
-    Delete(NotifyMsg, 1, Pos('"',NotifyMsg) + 2);
+      if NotifyMsg.Strings[i] = '-s' then
+        SmallIcon:=NotifyMsg.Strings[i + 1];
 
-    BigIcon:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
-    Delete(NotifyMsg, 1, Pos('"',NotifyMsg) + 2);
+      if NotifyMsg.Strings[i] = '-c' then
+        NotifyColor:=NotifyMsg.Strings[i + 1];
+    end;
 
-    SmallIcon:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg) - 1);
-    Delete(NotifyMsg, 1, Pos('"', NotifyMsg) + 2);
+    if (SmallIcon <> '') and (BigIcon = 'Sys.png') then
+      BigIcon:=SmallIcon;
 
-    NotifyColor:=Copy(NotifyMsg, 1, Pos('"', NotifyMsg)-1);
+    case NotifyColor[1] of
+      '0': NotifyColor:='#00acee';
+      '1': NotifyColor:='#235d82';
+      '2': NotifyColor:='#018399';
+      '3': NotifyColor:='#008a00';
+      '4': NotifyColor:='#5133ab';
+      '5': NotifyColor:='#8b0094';
+      '6': NotifyColor:='#ac193d';
+      '7': NotifyColor:='#222222';
+    end;
 
-    if BigIcon = 'null' then BigIcon:='sys.png';
-    if SmallIcon <> 'null' then BigIcon:=SmallIcon;
+    //Исключаем исключенные сообщения
+    if Pos(NotifyTitle, ExcludeList.Text) = 0 then begin
+      AddNotification(NotifyTitle, NotifyDesc, CurrentTimeHM, DateToStr(Date), BigIcon, NotifyColor);
+      Notifications.Add(NotifyTitle + #9 + NotifyDesc + #9 + CurrentTimeHM + #9 + DateToStr(Date) + #9 + BigIcon + #9 + NotifyColor);
+      Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
+    end else begin
+      IconIndex:=1;
+      Tray(3);
+    end;
 
-    if (Desc <> 'null') and (DescSub <> 'null') then Desc:=Desc + ' - ' + DescSub;
-    if (Desc = 'null') and (DescSub <> 'null') then Desc:=DescSub;
-    if (Desc = 'null') and (DescSub = 'null') then Desc:='';
-
-    if NotifyTitle = 'null' then
-      NotifyTitle:=ID_UNKNOWN_APP;
-
-    if NotifyColor <> 'null' then begin
-      case NotifyColor[1] of
-        '0': NotifyColor:='#00acee';
-        '1': NotifyColor:='#235d82';
-        '2': NotifyColor:='#018399';
-        '3': NotifyColor:='#008a00';
-        '4': NotifyColor:='#5133ab';
-        '5': NotifyColor:='#8b0094';
-        '6': NotifyColor:='#ac193d';
-        '7': NotifyColor:='#222222';
-        end;
-    end else NotifyColor:='gray';
-
-    WebView.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:' +
-      NotifyColor + ';"><img src="' + BigIcon + '" /></div><div id="context"><div id="title">' +
-      NotifyTitle + '</div><div id="clear"></div><div id="description">' + Desc +' </div></div><div id="time">' + MyTime + '<br>' +
-      DateToStr(Date) + '</div></div>' + WebView.OleObject.Document.getElementById('items').innerHTML;
-      
-    Notifications.Text:=WebView.OleObject.Document.getElementById('items').innerHTML;
-    Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
+    NotifyMsg.Free;
   end;
   Msg.Result:=Integer(True);
 end;
@@ -307,8 +347,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.6.1' + #13#10
-    + ID_LAST_UPDATE + ' 17.11.2018' + #13#10
+  Application.MessageBox(PChar(Application.Title + ' 0.7' + #13#10
+    + ID_LAST_UPDATE + ' 13.03.2019' + #13#10
     + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'),
     PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
