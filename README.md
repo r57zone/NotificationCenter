@@ -6,12 +6,8 @@ Alternative notification center for Windows. Compatible with [notifications for 
 ## Screenshots
 ![](https://user-images.githubusercontent.com/9499881/36250978-fbbba1c0-1258-11e8-8ef8-c3ec62ac554f.png)
 
-## Setup
-Before starting, you must run "ie11_enable.reg" file to correctly display interface.<br>
-To any notice did not appear in the center of notifications, you must add a line with the name of the notification to file "Exclude.txt", eg "LostFilm.TV".
-
 ## Download
->Version for Windows XP, Windows 7, Windows 8.1, Windows 10.
+>Version for Windows 7, 8.1, 10 with Internet Explorer 11 installed.
 
 **[Download](https://github.com/r57zone/Notification-center/releases)**
 

@@ -52,7 +52,7 @@ object Main: TMain
     end
   end
   object Icons: TImageList
-    Left = 72
+    Left = 104
     Top = 8
     Bitmap = {
       494C010101000400040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
@@ -193,5 +193,20 @@ object Main: TMain
       0000000000000000000000000000000000000000000000000000000000000000
       FFFF000000000000FFFF00000000000000000000000000000000000000000000
       000000000000}
+  end
+  object ItemsPopupMenu: TPopupMenu
+    Left = 72
+    Top = 8
+    object RemoveBtn: TMenuItem
+      Caption = #1059#1076#1072#1083#1080#1090#1100
+      OnClick = RemoveBtnClick
+    end
+    object ItemsLine: TMenuItem
+      Caption = '-'
+    end
+    object BlockBtn: TMenuItem
+      Caption = #1047#1072#1073#1083#1086#1082#1080#1088#1086#1074#1072#1090#1100
+      OnClick = BlockBtnClick
+    end
   end
 end

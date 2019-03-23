@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, OleCtrls, SHDocVw, MSHTML, ShellAPI, StdCtrls, ExtCtrls, XPMan,
-  Menus, ImgList, IniFiles;
+  Menus, ImgList, IniFiles, Registry;
 
 type
   TMain = class(TForm)
@@ -16,6 +16,10 @@ type
     LineItem: TMenuItem;
     ExitBtn: TMenuItem;
     Icons: TImageList;
+    ItemsPopupMenu: TPopupMenu;
+    RemoveBtn: TMenuItem;
+    ItemsLine: TMenuItem;
+    BlockBtn: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure WebViewBeforeNavigate2(Sender: TObject;
       const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
@@ -25,11 +29,13 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure AboutBtnClick(Sender: TObject);
     procedure ExitBtnClick(Sender: TObject);
+    procedure RemoveBtnClick(Sender: TObject);
+    procedure BlockBtnClick(Sender: TObject);
   private
     procedure WMCopyData(var Msg: TWMCopyData); message WM_COPYDATA;
     procedure WMNCHITTEST(var Msg: TMessage); message WM_NCHITTEST;
     procedure DefaultHandler(var Message); override;
-    procedure AddNotification(NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor: string);
+    procedure AddNotification(NotifyID: integer; NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor: string);
     procedure LoadNotifications;
     procedure MyShow;
     procedure MyHide;
@@ -48,8 +54,9 @@ var
   WM_TaskBarCreated: Cardinal;
   IconIndex: byte;
   IconFull: TIcon;
-  ID_NOTIFICATIONS, ID_DELETE_ALL, ID_UNKNOWN_APP, ID_LAST_UPDATE: string;
+  ID_NOTIFICATIONS, ID_DELETE_ALL, ID_UNKNOWN_APP, ID_BLOCK_QUESTION, ID_LAST_UPDATE: string;
   RunOnce: boolean;
+  NotifyIndex: integer;
 
 implementation
 
@@ -131,9 +138,9 @@ begin
   Result:=pcLCA;
 end;
 
-procedure TMain.AddNotification(NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor: string);
+procedure TMain.AddNotification(NotifyID: integer; NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor: string);
 begin
-  WebView.OleObject.Document.getElementById('items').innerHTML:='<div id="item"><div id="icon" style="background-color:' +
+  WebView.OleObject.Document.getElementById('items').innerHTML:='<div oncontextmenu="document.location=''#item=' + IntToStr(NotifyID) + ''';" id="item"><div id="icon" style="background-color:' +
     NotifyColor + ';"><img src="' + NotifyIconPath + '" /></div><div id="context"><div id="title">' +
     NotifyTitle + '</div><div id="clear"></div><div id="description">' + NotifyDesc +' </div></div><div id="time">' + NotifyTimeHM + '<br>' +
     NotifyDate + '</div></div>' + WebView.OleObject.Document.getElementById('items').innerHTML;
@@ -165,16 +172,28 @@ begin
 
     NotifyColor:=NotifyStr;
 
-    AddNotification(NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor);
+    AddNotification(i, NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor);
   end;
 end;
 
 procedure TMain.FormCreate(Sender: TObject);
 var
   Ini: TIniFile;
+  Reg: TRegistry;
 begin
   Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Config.ini');
   IconIndex:=Ini.ReadInteger('Main', 'NewMessages', 0);
+  if Ini.ReadBool('Main', 'FirstRun', true) then begin
+    Ini.WriteBool('Main', 'FirstRun', false);
+    Reg:=TRegistry.Create;
+    Reg.RootKey:=HKEY_CURRENT_USER;
+    if Reg.OpenKey('\Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION', true) then begin
+        Reg.WriteInteger(ExtractFileName(ParamStr(0)), 11000);
+      Reg.CloseKey;
+    end;
+    Reg.Free;
+  end;
+
   Ini.Free;
   IconFull:=TIcon.Create;
   Icons.GetIcon(0, IconFull);
@@ -189,6 +208,11 @@ begin
   ID_NOTIFICATIONS:=Ini.ReadString('Main', 'ID_NOTIFICATIONS', '');
   ID_DELETE_ALL:=Ini.ReadString('Main', 'ID_DELETE_ALL', '');
   ID_UNKNOWN_APP:=Ini.ReadString('Main', 'ID_UNKNOWN_APP', '');
+
+  RemoveBtn.Caption:=Ini.ReadString('Main', 'ID_REMOVE', '');
+  BlockBtn.Caption:=Ini.ReadString('Main', 'ID_BLOCK', '');
+  ID_BLOCK_QUESTION:=Ini.ReadString('Main', 'ID_BLOCK_QUESTION', '');
+
   AboutBtn.Caption:=Ini.ReadString('Main', 'ID_ABOUT_TITLE', '');
   ID_LAST_UPDATE:=Ini.ReadString('Main', 'ID_LAST_UPDATE', '');
   ExitBtn.Caption:=Ini.ReadString('Main', 'ID_EXIT', '');
@@ -199,7 +223,7 @@ begin
   WM_TaskBarCreated:=RegisterWindowMessage('TaskbarCreated');
 
   WebView.Silent:=true;
-  WebView.Navigate(ExtractFilePath(ParamStr(0)) + 'main.htm');
+  WebView.Navigate(ExtractFilePath(ParamStr(0)) + 'main.html');
   Tray(1);
   SetWindowLong(Application.Handle, GWL_EXSTYLE, GetWindowLong(Application.Handle, GWL_EXSTYLE) or WS_EX_TOOLWINDOW);
   MyHide;
@@ -215,27 +239,31 @@ procedure TMain.WebViewBeforeNavigate2(Sender: TObject;
   const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
   Headers: OleVariant; var Cancel: WordBool);
 var
-  sUrl: string;
-  NotifyTitle, NotifyDesciption: string;
+  sURL: string; NotificationIndex: integer;
 begin
   sUrl:=ExtractFileName(StringReplace(url, '/', '\', [rfReplaceAll]));
-  if Pos('main.htm', sUrl) = 0 then Cancel:=true;
+  if Pos('main.html', sUrl) = 0 then Cancel:=true;
 
-  if sUrl = 'main.htm#rm' then begin
+  if sUrl = 'main.html#rm' then begin
     WebView.OleObject.Document.getElementById('items').innerHTML:='';
     Notifications.Clear;
     Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
+  end;
+
+  if Copy(sUrl, 1, 15) = 'main.html#item=' then begin
+    NotifyIndex:=StrToIntDef(Copy(sUrl, 16, Length(sUrl)), -1);
+    ItemsPopupMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
   end;
 end;
 
 procedure TMain.WebViewDocumentComplete(Sender: TObject;
   const pDisp: IDispatch; var URL: OleVariant);
 var
-  sUrl:string;
+  sUrl: string;
 begin
   if pDisp = (Sender as TWebBrowser).Application then begin
     sUrl:=ExtractFileName(StringReplace(url, '/', '\', [rfReplaceAll]));
-    if sUrl = 'main.htm' then begin
+    if sUrl = 'main.html' then begin
       Application.ProcessMessages;
       if WebView.Document <> nil then begin
         LoadNotifications;
@@ -305,12 +333,11 @@ begin
 
     //Исключаем исключенные сообщения
     if Pos(NotifyTitle, ExcludeList.Text) = 0 then begin
-      AddNotification(NotifyTitle, NotifyDesc, CurrentTimeHM, DateToStr(Date), BigIcon, NotifyColor);
       Notifications.Add(NotifyTitle + #9 + NotifyDesc + #9 + CurrentTimeHM + #9 + DateToStr(Date) + #9 + BigIcon + #9 + NotifyColor);
-      Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
-    end else begin
+      AddNotification(Notifications.Count - 1, NotifyTitle, NotifyDesc, CurrentTimeHM, DateToStr(Date), BigIcon, NotifyColor);
       IconIndex:=1;
       Tray(3);
+      Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
     end;
 
     NotifyMsg.Free;
@@ -347,8 +374,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.7' + #13#10
-    + ID_LAST_UPDATE + ' 13.03.2019' + #13#10
+  Application.MessageBox(PChar(Application.Title + ' 0.7.1' + #13#10
+    + ID_LAST_UPDATE + ' 23.03.2019' + #13#10
     + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'),
     PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
@@ -361,6 +388,33 @@ end;
 procedure TMain.WMNCHITTEST(var Msg: TMessage);
 begin
   Msg.Result:=HTCLIENT;
+end;
+
+procedure TMain.RemoveBtnClick(Sender: TObject);
+begin
+  if NotifyIndex <> -1 then begin
+    Notifications.Delete(NotifyIndex);
+    Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
+    WebView.OleObject.Document.getElementById('items').innerHTML:='';
+    LoadNotifications;
+  end;
+end;
+
+procedure TMain.BlockBtnClick(Sender: TObject);
+var
+  ExcludeTitle: string;
+begin
+  if NotifyIndex <> -1 then begin
+    ExcludeTitle:=Copy(Notifications.Strings[NotifyIndex], 1, Pos(#9, Notifications.Strings[NotifyIndex]) - 1);
+
+    case MessageBox(Handle, PChar(Format(ID_BLOCK_QUESTION, [ExcludeTitle])), PChar(Caption), 35) of
+      6:
+        begin
+          ExcludeList.Add(ExcludeTitle);
+          ExcludeList.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Exclude.txt');
+        end;
+    end;
+  end;
 end;
 
 end.

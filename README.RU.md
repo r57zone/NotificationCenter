@@ -6,12 +6,8 @@
 ## Скриншоты
 ![](https://user-images.githubusercontent.com/9499881/36250925-cb506156-1258-11e8-8c31-e52e8bbed1fa.png)
 
-## Настройка
-Перед запуском необходимо запустить файл "ie11_enable.reg" для корректного отображения интерфейса.<br>
-Для того, чтобы какое-либо уведомление не появлялось в центре уведомлений, необходимо добавить строку с названием уведомления в файл "Exclude.txt", например "LostFilm.TV".
-
 ## Загрузка
->Версия для Windows XP, Windows 7, Windows 8.1, Windows 10.
+>Версия для Windows 7, 8.1, 10, с установленным Internet Explorer 11.
 
 **[Загрузить](https://github.com/r57zone/Notification-center/releases)**
 
