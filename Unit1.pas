@@ -419,10 +419,7 @@ end;
 
 procedure TMain.ShowBtnClick(Sender: TObject);
 begin
-  if IsWindowVisible(Main.Handle) then
-    NotificationCenterHide
-      else
-    NotificationCenterShow;
+  NotificationCenterShow;
 end;
 
 end.
