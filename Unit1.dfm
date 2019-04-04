@@ -12,6 +12,7 @@ object Main: TMain
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
+  FormStyle = fsStayOnTop
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
@@ -39,11 +40,18 @@ object Main: TMain
   object PopupMenu: TPopupMenu
     Left = 40
     Top = 8
+    object ShowBtn: TMenuItem
+      Caption = #1062#1077#1085#1090#1088' '#1091#1074#1077#1076#1086#1084#1083#1077#1085#1080#1081
+      OnClick = ShowBtnClick
+    end
+    object LineItem: TMenuItem
+      Caption = '-'
+    end
     object AboutBtn: TMenuItem
       Caption = #1054' '#1087#1088#1086#1075#1088#1072#1084#1084#1077'...'
       OnClick = AboutBtnClick
     end
-    object LineItem: TMenuItem
+    object LineItem2: TMenuItem
       Caption = '-'
     end
     object ExitBtn: TMenuItem

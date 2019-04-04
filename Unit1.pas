@@ -13,13 +13,15 @@ type
     XPManifest: TXPManifest;
     PopupMenu: TPopupMenu;
     AboutBtn: TMenuItem;
-    LineItem: TMenuItem;
+    LineItem2: TMenuItem;
     ExitBtn: TMenuItem;
     Icons: TImageList;
     ItemsPopupMenu: TPopupMenu;
     RemoveBtn: TMenuItem;
     ItemsLine: TMenuItem;
     BlockBtn: TMenuItem;
+    ShowBtn: TMenuItem;
+    LineItem: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure WebViewBeforeNavigate2(Sender: TObject;
       const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
@@ -31,14 +33,15 @@ type
     procedure ExitBtnClick(Sender: TObject);
     procedure RemoveBtnClick(Sender: TObject);
     procedure BlockBtnClick(Sender: TObject);
+    procedure ShowBtnClick(Sender: TObject);
   private
     procedure WMCopyData(var Msg: TWMCopyData); message WM_COPYDATA;
     procedure WMNCHITTEST(var Msg: TMessage); message WM_NCHITTEST;
     procedure DefaultHandler(var Message); override;
     procedure AddNotification(NotifyID: integer; NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor: string);
     procedure LoadNotifications;
-    procedure MyShow;
-    procedure MyHide;
+    procedure NotificationCenterShow;
+    procedure NotificationCenterHide;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
     procedure IconMouse(var Msg: TMessage); message WM_USER + 1;
@@ -54,31 +57,13 @@ var
   WM_TaskBarCreated: Cardinal;
   IconIndex: byte;
   IconFull: TIcon;
-  ID_NOTIFICATIONS, ID_DELETE_ALL, ID_UNKNOWN_APP, ID_BLOCK_QUESTION, ID_LAST_UPDATE: string;
+  IDS_NOTIFICATIONS, IDS_DELETE_ALL, IDS_UNKNOWN_APP, IDS_BLOCK_QUESTION, IDS_LAST_UPDATE: string;
   RunOnce: boolean;
   NotifyIndex: integer;
 
 implementation
 
 {$R *.dfm}
-
-procedure TMain.MyShow;
-begin
-  if RunOnce = false then begin
-    Main.AlphaBlendValue:=255;
-    RunOnce:=true;
-  end;
-  Top:=Screen.Height - Main.Height - 54;
-  Left:=Screen.Width - Main.Width - 8;
-  if WebView.Document <> nil then
-    (WebView.Document as IHTMLDocument2).ParentWindow.Focus;
-  ShowWindow(Handle, SW_SHOW);
-end;
-
-procedure TMain.MyHide;
-begin
-  ShowWindow(Handle, SW_HIDE);
-end;
 
 procedure Tray(ActInd: integer); //1 - добавить, 2 - удалить, 3 -  заменить
 var
@@ -105,18 +90,32 @@ begin
   end;
 end;
 
+procedure TMain.NotificationCenterShow;
+begin
+  if RunOnce = false then begin
+    Main.AlphaBlendValue:=255;
+    Main.AlphaBlend:=false;
+    RunOnce:=true;
+  end;
+  Top:=Screen.Height - Main.Height - 54;
+  Left:=Screen.Width - Main.Width - 8;
+  if WebView.Document <> nil then
+    (WebView.Document as IHTMLDocument2).ParentWindow.Focus;
+  ShowWindow(Handle, SW_SHOW);
+  IconIndex:=0;
+  Tray(3);
+end;
+
+procedure TMain.NotificationCenterHide;
+begin
+  ShowWindow(Handle, SW_HIDE);
+end;
+
 procedure TMain.IconMouse(var Msg: TMessage);
 begin
   case Msg.LParam of
     WM_LBUTTONDOWN:
-      begin
-        MyShow;
-        IconIndex:=0;
-        Tray(3);
-      end;
-
-    WM_LBUTTONDBLCLK:
-      MyHide;
+      if IsWindowVisible(Main.Handle) then NotificationCenterHide else NotificationCenterShow;
 
     WM_RBUTTONDOWN:
       PopupMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
@@ -204,18 +203,19 @@ begin
   else
     Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Languages\English.ini');
 
-  Application.Title:=Ini.ReadString('Main', 'ID_TITLE', '');
-  ID_NOTIFICATIONS:=Ini.ReadString('Main', 'ID_NOTIFICATIONS', '');
-  ID_DELETE_ALL:=Ini.ReadString('Main', 'ID_DELETE_ALL', '');
-  ID_UNKNOWN_APP:=Ini.ReadString('Main', 'ID_UNKNOWN_APP', '');
+  Application.Title:=Ini.ReadString('Main', 'IDS_TITLE', '');
+  IDS_NOTIFICATIONS:=Ini.ReadString('Main', 'IDS_NOTIFICATIONS', '');
+  IDS_DELETE_ALL:=Ini.ReadString('Main', 'IDS_DELETE_ALL', '');
+  IDS_UNKNOWN_APP:=Ini.ReadString('Main', 'IDS_UNKNOWN_APP', '');
 
-  RemoveBtn.Caption:=Ini.ReadString('Main', 'ID_REMOVE', '');
-  BlockBtn.Caption:=Ini.ReadString('Main', 'ID_BLOCK', '');
-  ID_BLOCK_QUESTION:=Ini.ReadString('Main', 'ID_BLOCK_QUESTION', '');
+  RemoveBtn.Caption:=Ini.ReadString('Main', 'IDS_REMOVE', '');
+  BlockBtn.Caption:=Ini.ReadString('Main', 'IDS_BLOCK', '');
+  IDS_BLOCK_QUESTION:=Ini.ReadString('Main', 'IDS_BLOCK_QUESTION', '');
 
-  AboutBtn.Caption:=Ini.ReadString('Main', 'ID_ABOUT_TITLE', '');
-  ID_LAST_UPDATE:=Ini.ReadString('Main', 'ID_LAST_UPDATE', '');
-  ExitBtn.Caption:=Ini.ReadString('Main', 'ID_EXIT', '');
+  ShowBtn.Caption:=Application.Title;
+  AboutBtn.Caption:=Ini.ReadString('Main', 'IDS_ABOUT_TITLE', '');
+  IDS_LAST_UPDATE:=Ini.ReadString('Main', 'IDS_LAST_UPDATE', '');
+  ExitBtn.Caption:=Ini.ReadString('Main', 'IDS_EXIT', '');
   
   Ini.Free;
   //
@@ -226,7 +226,7 @@ begin
   WebView.Navigate(ExtractFilePath(ParamStr(0)) + 'main.html');
   Tray(1);
   SetWindowLong(Application.Handle, GWL_EXSTYLE, GetWindowLong(Application.Handle, GWL_EXSTYLE) or WS_EX_TOOLWINDOW);
-  MyHide;
+  NotificationCenterHide;
   Notifications:=TStringList.Create;
   if FileExists(ExtractFilePath(ParamStr(0)) + 'Notifications.txt') then
     Notifications.LoadFromFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
@@ -267,8 +267,8 @@ begin
       Application.ProcessMessages;
       if WebView.Document <> nil then begin
         LoadNotifications;
-        WebView.OleObject.Document.getElementById('title').innerHTML:=ID_NOTIFICATIONS;
-        WebView.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#rm'';">' + ID_DELETE_ALL + '</a>';
+        WebView.OleObject.Document.getElementById('title').innerHTML:=IDS_NOTIFICATIONS;
+        WebView.OleObject.Document.getElementById('clear_btn').innerHTML:='<a onclick="document.location=''#rm'';">' + IDS_DELETE_ALL + '</a>';
       end;
       Caption:='Notification center';
     end;
@@ -295,7 +295,7 @@ begin
     NotifyMsg.Text:=StringReplace(NotifyMsg.Text, #9, #13#10, [rfReplaceAll]);
     NotifyMsg.Delete(0);
 
-    NotifyTitle:=ID_UNKNOWN_APP;
+    NotifyTitle:=IDS_UNKNOWN_APP;
     NotifyColor:='gray';
     BigIcon:='Sys.png';
     SmallIcon:='';
@@ -348,7 +348,7 @@ end;
 procedure TMain.WMActivate(var Msg: TMessage);
 begin
   if Msg.WParam = WA_INACTIVE then
-    MyHide;
+    NotificationCenterHide;
   inherited;
 end;
 
@@ -374,8 +374,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.7.1' + #13#10
-    + ID_LAST_UPDATE + ' 23.03.2019' + #13#10
+  Application.MessageBox(PChar(Application.Title + ' 0.7.2' + #13#10
+    + IDS_LAST_UPDATE + ' 04.04.2019' + #13#10
     + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'),
     PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
@@ -407,7 +407,7 @@ begin
   if NotifyIndex <> -1 then begin
     ExcludeTitle:=Copy(Notifications.Strings[NotifyIndex], 1, Pos(#9, Notifications.Strings[NotifyIndex]) - 1);
 
-    case MessageBox(Handle, PChar(Format(ID_BLOCK_QUESTION, [ExcludeTitle])), PChar(Caption), 35) of
+    case MessageBox(Handle, PChar(Format(IDS_BLOCK_QUESTION, [ExcludeTitle])), PChar(Caption), 35) of
       6:
         begin
           ExcludeList.Add(ExcludeTitle);
@@ -415,6 +415,14 @@ begin
         end;
     end;
   end;
+end;
+
+procedure TMain.ShowBtnClick(Sender: TObject);
+begin
+  if IsWindowVisible(Main.Handle) then
+    NotificationCenterHide
+      else
+    NotificationCenterShow;
 end;
 
 end.
