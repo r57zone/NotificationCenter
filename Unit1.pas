@@ -22,6 +22,7 @@ type
     BlockBtn: TMenuItem;
     ShowBtn: TMenuItem;
     LineItem: TMenuItem;
+    ChangeIcon: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure WebViewBeforeNavigate2(Sender: TObject;
       const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
@@ -34,6 +35,7 @@ type
     procedure RemoveBtnClick(Sender: TObject);
     procedure BlockBtnClick(Sender: TObject);
     procedure ShowBtnClick(Sender: TObject);
+    procedure ChangeIconTimer(Sender: TObject);
   private
     procedure WMCopyData(var Msg: TWMCopyData); message WM_COPYDATA;
     procedure WMNCHITTEST(var Msg: TMessage); message WM_NCHITTEST;
@@ -102,6 +104,10 @@ begin
   if WebView.Document <> nil then
     (WebView.Document as IHTMLDocument2).ParentWindow.Focus;
   ShowWindow(Handle, SW_SHOW);
+
+  //Выключаем "анимацию" иконки
+  ChangeIcon.Enabled:=false;
+
   IconIndex:=0;
   Tray(3);
 end;
@@ -128,11 +134,11 @@ begin
   Params.Style:=WS_POPUP or WS_THICKFRAME;
 end;
 
-function GetLocaleInformation(flag: integer): string;
+function GetLocaleInformation(Flag: integer): string;
 var
   pcLCA: array [0..20] of Char;
 begin
-  if GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, flag, pcLCA, 19)<=0 then
+  if GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, Flag, pcLCA, 19)<=0 then
     pcLCA[0]:=#0;
   Result:=pcLCA;
 end;
@@ -182,6 +188,11 @@ var
 begin
   Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Config.ini');
   IconIndex:=Ini.ReadInteger('Main', 'NewMessages', 0);
+
+  //Включаем "анимацию" иконки
+  if IconIndex = 1 then
+    ChangeIcon.Enabled:=true;
+
   if Ini.ReadBool('Main', 'FirstRun', true) then begin
     Ini.WriteBool('Main', 'FirstRun', false);
     Reg:=TRegistry.Create;
@@ -337,6 +348,8 @@ begin
       AddNotification(Notifications.Count - 1, NotifyTitle, NotifyDesc, CurrentTimeHM, DateToStr(Date), BigIcon, NotifyColor);
       IconIndex:=1;
       Tray(3);
+      //Включаем "анимацию" иконки
+      ChangeIcon.Enabled:=true;
       Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
     end;
 
@@ -374,8 +387,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.7.2' + #13#10
-    + IDS_LAST_UPDATE + ' 04.04.2019' + #13#10
+  Application.MessageBox(PChar(Application.Title + ' 0.7.3.1' + #13#10
+    + IDS_LAST_UPDATE + ' 27.08.2020' + #13#10
     + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'),
     PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
@@ -420,6 +433,15 @@ end;
 procedure TMain.ShowBtnClick(Sender: TObject);
 begin
   NotificationCenterShow;
+end;
+
+procedure TMain.ChangeIconTimer(Sender: TObject);
+begin
+  if IconIndex = 0 then
+    IconIndex:=1
+  else
+    IconIndex:=0;
+  Tray(3);
 end;
 
 end.
