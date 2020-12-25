@@ -370,6 +370,7 @@ var
   Ini: TIniFile;
 begin
   Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Config.ini');
+  if ChangeIcon.Enabled then IconIndex:=1;
   Ini.WriteInteger('Main', 'NewMessages', IconIndex);
   Ini.Free;
   Notifications.Free;
@@ -387,8 +388,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.7.3.1' + #13#10
-    + IDS_LAST_UPDATE + ' 27.08.2020' + #13#10
+  Application.MessageBox(PChar(Application.Title + ' 0.7.4' + #13#10
+    + IDS_LAST_UPDATE + ' 25.12.2020' + #13#10
     + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'),
     PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
