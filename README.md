@@ -3,6 +3,9 @@
 # Notification center
 Alternative notification center for Windows. Compatible with [notifications for programs](https://github.com/r57zone/notifications).
 
+# Setup
+To enable blinking of the keyboard LED (Scroll Lock), change the `ScrollBlink` parameter to` 1` in the "Config.ini" file. 
+
 ## Screenshots
 ![](https://user-images.githubusercontent.com/9499881/36250978-fbbba1c0-1258-11e8-8ef8-c3ec62ac554f.png)
 

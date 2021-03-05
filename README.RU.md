@@ -3,6 +3,9 @@
 # Центр уведомлений
 Альтернативный центр уведомлений для Windows. Совместимо с [уведомлениями для программ](https://github.com/r57zone/notifications).
 
+## Настройка
+Для включения мигания светодиодом клавиатуры (Scroll Lock-ом), изменить параметр `ScrollBlink` на `1` в файле "Config.ini".
+
 ## Скриншоты
 ![](https://user-images.githubusercontent.com/9499881/36250925-cb506156-1258-11e8-8c31-e52e8bbed1fa.png)
 
