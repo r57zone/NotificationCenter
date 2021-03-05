@@ -36,6 +36,7 @@ type
     procedure BlockBtnClick(Sender: TObject);
     procedure ShowBtnClick(Sender: TObject);
     procedure ChangeIconTimer(Sender: TObject);
+    procedure PressScroll;
   private
     procedure WMCopyData(var Msg: TWMCopyData); message WM_COPYDATA;
     procedure WMNCHITTEST(var Msg: TMessage); message WM_NCHITTEST;
@@ -62,6 +63,7 @@ var
   IDS_NOTIFICATIONS, IDS_DELETE_ALL, IDS_UNKNOWN_APP, IDS_BLOCK_QUESTION, IDS_LAST_UPDATE: string;
   RunOnce: boolean;
   NotifyIndex: integer;
+  ScrollBlink, ScrollState: boolean;
 
 implementation
 
@@ -121,7 +123,15 @@ procedure TMain.IconMouse(var Msg: TMessage);
 begin
   case Msg.LParam of
     WM_LBUTTONDOWN:
-      if IsWindowVisible(Main.Handle) then NotificationCenterHide else NotificationCenterShow;
+      begin
+        if IsWindowVisible(Main.Handle) then
+          NotificationCenterHide
+        else
+          NotificationCenterShow;
+
+        if ScrollState then
+          PressScroll;
+      end;
 
     WM_RBUTTONDOWN:
       PopupMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
@@ -187,11 +197,14 @@ var
   Reg: TRegistry;
 begin
   Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Config.ini');
+  ScrollBlink:=Ini.ReadBool('Main', 'ScrollBlink', false);
   IconIndex:=Ini.ReadInteger('Main', 'NewMessages', 0);
 
   //¬ключаем "анимацию" иконки
-  if IconIndex = 1 then
+  if IconIndex = 1 then begin
     ChangeIcon.Enabled:=true;
+    PressScroll;
+  end;
 
   if Ini.ReadBool('Main', 'FirstRun', true) then begin
     Ini.WriteBool('Main', 'FirstRun', false);
@@ -340,6 +353,8 @@ begin
       '5': NotifyColor:='#8b0094';
       '6': NotifyColor:='#ac193d';
       '7': NotifyColor:='#222222';
+    else
+      NotifyColor:='#018399';
     end;
 
     //»сключаем исключенные сообщени€
@@ -350,6 +365,7 @@ begin
       Tray(3);
       //¬ключаем "анимацию" иконки
       ChangeIcon.Enabled:=true;
+      PressScroll;
       Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
     end;
 
@@ -377,6 +393,8 @@ begin
   ExcludeList.Free;
   Tray(2);
   IconFull.Free;
+  if ScrollState then
+    PressScroll;
 end;
 
 procedure TMain.DefaultHandler(var Message);
@@ -388,10 +406,10 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.7.4' + #13#10
-    + IDS_LAST_UPDATE + ' 25.12.2020' + #13#10
-    + 'http://r57zone.github.io' + #13#10 + 'r57zone@gmail.com'),
-    PChar(AboutBtn.Caption), MB_ICONINFORMATION);
+  Application.MessageBox(PChar(Application.Title + ' 0.7.5' + #13#10 +
+  IDS_LAST_UPDATE + ' 05.03.2021' + #13#10 +
+  'https://r57zone.github.io' + #13#10 +
+  'r57zone@gmail.com'), PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
 
 procedure TMain.ExitBtnClick(Sender: TObject);
@@ -442,7 +460,17 @@ begin
     IconIndex:=1
   else
     IconIndex:=0;
+  PressScroll;
   Tray(3);
+end;
+
+procedure TMain.PressScroll;
+begin
+  if ScrollBlink = false then
+    Exit;
+  keybd_event(VK_SCROLL, VK_SCROLL, KEYEVENTF_EXTENDEDKEY, 0);
+  keybd_event(VK_SCROLL, VK_SCROLL, KEYEVENTF_EXTENDEDKEY or KEYEVENTF_KEYUP, 0);
+  ScrollState:=not ScrollState;
 end;
 
 end.
