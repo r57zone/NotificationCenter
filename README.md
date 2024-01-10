@@ -3,7 +3,7 @@
 ← Choose language | Выберите язык
 
 # Notification center
-Alternative notification center for Windows. Compatible with [notifications for programs](https://github.com/r57zone/notifications).
+Alternative notification center for Windows. Compatible with [notifications for programs](https://github.com/r57zone/notifications). Can be used together with [EasyReminders](https://github.com/r57zone/EasyReminders), [RSS checker](https://github.com/r57zone/RSS-checker) and [EchoBackuper](https://github.com/r57zone/EchoBackuper/).
 
 # Setup
 To enable blinking of the keyboard LED (Scroll Lock), change the `ScrollBlink` parameter to `1` in the "Config.ini" file. 
