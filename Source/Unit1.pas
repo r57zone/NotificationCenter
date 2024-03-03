@@ -57,7 +57,7 @@ type
 var
   Main: TMain;
   Notifications, ExcludeList: TStringList;
-  WM_TaskBarCreated: Cardinal;
+  WM_TASKBARCREATED: Cardinal;
   IconIndex: byte;
   IconFull: TIcon;
   IDS_NOTIFICATIONS, IDS_DELETE_ALL, IDS_UNKNOWN_APP, IDS_BLOCK_QUESTION, IDS_LAST_UPDATE: string;
@@ -71,7 +71,7 @@ implementation
 
 procedure Tray(ActInd: integer); //1 - добавить, 2 - удалить, 3 -  заменить
 var
-  nim: TNotifyIconData;
+  NIM: TNotifyIconData;
 begin
   with NIM do begin
     cbSize:=SizeOf(nim);
@@ -88,9 +88,9 @@ begin
     StrCopy(szTip, PChar(Application.Title));
   end;
   case ActInd of
-    1: Shell_NotifyIcon(NIM_ADD, @nim);
-    2: Shell_NotifyIcon(NIM_DELETE, @nim);
-    3: Shell_NotifyIcon(NIM_MODIFY, @nim);
+    1: Shell_NotifyIcon(NIM_ADD, @NIM);
+    2: Shell_NotifyIcon(NIM_DELETE, @NIM);
+    3: Shell_NotifyIcon(NIM_MODIFY, @NIM);
   end;
 end;
 
@@ -107,8 +107,10 @@ begin
     (WebView.Document as IHTMLDocument2).ParentWindow.Focus;
   ShowWindow(Handle, SW_SHOW);
 
-  //Выключаем "анимацию" иконки
+  // Выключаем "анимацию" иконки
   ChangeIcon.Enabled:=false;
+  if ScrollState then // Наверняка выключаем, иногда оставался
+    PressScroll;
 
   IconIndex:=0;
   Tray(3);
@@ -286,7 +288,7 @@ var
   sUrl: string;
 begin
   if pDisp = (Sender as TWebBrowser).Application then begin
-    sUrl:=ExtractFileName(StringReplace(url, '/', '\', [rfReplaceAll]));
+    sUrl:=ExtractFileName(StringReplace(URL, '/', '\', [rfReplaceAll]));
     if sUrl = 'main.html' then begin
       Application.ProcessMessages;
       if WebView.Document <> nil then begin
@@ -317,6 +319,7 @@ begin
     NotifyMsg:=TStringList.Create;
     NotifyMsg.Text:=PChar(TWMCopyData(Msg).CopyDataStruct.lpData);
     NotifyMsg.Text:=StringReplace(NotifyMsg.Text, #9, #13#10, [rfReplaceAll]);
+    NotifyMsg.Text:=StringReplace(NotifyMsg.Text, '&&', '&', [rfReplaceAll]);
     NotifyMsg.Delete(0);
 
     NotifyTitle:=IDS_UNKNOWN_APP;
@@ -345,25 +348,25 @@ begin
       BigIcon:=SmallIcon;
 
     case NotifyColor[1] of
-      '0': NotifyColor:='#00acee';
-      '1': NotifyColor:='#235d82';
-      '2': NotifyColor:='#018399';
-      '3': NotifyColor:='#008a00';
-      '4': NotifyColor:='#5133ab';
-      '5': NotifyColor:='#8b0094';
-      '6': NotifyColor:='#ac193d';
-      '7': NotifyColor:='#222222';
+      '0': NotifyColor:='#3591ce'; // Светло-синий
+      '1': NotifyColor:='#235d82'; // Темно-синий
+      '2': NotifyColor:='#018399'; // Сине-зеленый
+      '3': NotifyColor:='#008a00'; // Зелёный
+      '4': NotifyColor:='#2933ab'; // Фиолетовый
+      '5': NotifyColor:='#8d44ad'; // Темно-розовый
+      '6': NotifyColor:='#c0392b'; // Красный
+      '7': NotifyColor:='#2c3e50'; // Чёрный
     else
-      NotifyColor:='#018399';
+      NotifyColor:='#3591ce';      // Светло-синий
     end;
 
-    //Исключаем исключенные сообщения
+    // Исключаем исключенные сообщения
     if Pos(NotifyTitle, ExcludeList.Text) = 0 then begin
       Notifications.Add(NotifyTitle + #9 + NotifyDesc + #9 + CurrentTimeHM + #9 + DateToStr(Date) + #9 + BigIcon + #9 + NotifyColor);
       AddNotification(Notifications.Count - 1, NotifyTitle, NotifyDesc, CurrentTimeHM, DateToStr(Date), BigIcon, NotifyColor);
       IconIndex:=1;
       Tray(3);
-      //Включаем "анимацию" иконки
+      // Включаем "анимацию" иконки
       ChangeIcon.Enabled:=true;
       PressScroll;
       Notifications.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Notifications.txt');
@@ -406,8 +409,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.7.5' + #13#10 +
-  IDS_LAST_UPDATE + ' 05.03.2021' + #13#10 +
+  Application.MessageBox(PChar(Application.Title + ' 0.7.6' + #13#10 +
+  IDS_LAST_UPDATE + ' 03.03.24' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
