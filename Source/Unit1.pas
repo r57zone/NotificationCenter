@@ -69,7 +69,7 @@ implementation
 
 {$R *.dfm}
 
-procedure Tray(ActInd: integer); //1 - добавить, 2 - удалить, 3 -  заменить
+procedure Tray(ActInd: integer); //1 - добавить, 2 - заменить, 3 - удалить
 var
   NIM: TNotifyIconData;
 begin
@@ -89,8 +89,8 @@ begin
   end;
   case ActInd of
     1: Shell_NotifyIcon(NIM_ADD, @NIM);
-    2: Shell_NotifyIcon(NIM_DELETE, @NIM);
-    3: Shell_NotifyIcon(NIM_MODIFY, @NIM);
+    2: Shell_NotifyIcon(NIM_MODIFY, @NIM);
+    3: Shell_NotifyIcon(NIM_DELETE, @NIM);
   end;
 end;
 
@@ -113,7 +113,7 @@ begin
     PressScroll;
 
   IconIndex:=0;
-  Tray(3);
+  Tray(2);
 end;
 
 procedure TMain.NotificationCenterHide;
@@ -197,12 +197,13 @@ procedure TMain.FormCreate(Sender: TObject);
 var
   Ini: TIniFile;
   Reg: TRegistry;
+  LangFileName: string;
 begin
-  Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Config.ini');
+  Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Setup.ini');
   ScrollBlink:=Ini.ReadBool('Main', 'ScrollBlink', false);
   IconIndex:=Ini.ReadInteger('Main', 'NewMessages', 0);
 
-  //¬ключаем "анимацию" иконки
+  // ¬ключаем "анимацию" иконки
   if IconIndex = 1 then begin
     ChangeIcon.Enabled:=true;
     PressScroll;
@@ -224,8 +225,9 @@ begin
   Icons.GetIcon(0, IconFull);
 
   //ѕеревод / Translate
-  if FileExists(ExtractFilePath(ParamStr(0)) + 'Languages\' + GetLocaleInformation(LOCALE_SENGLANGUAGE) + '.ini') then
-    Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Languages\' + GetLocaleInformation(LOCALE_SENGLANGUAGE) + '.ini')
+  LangFileName:=GetLocaleInformation(LOCALE_SENGLANGUAGE) + '.ini';
+  if FileExists(ExtractFilePath(ParamStr(0)) + 'Languages\' + LangFileName) then
+    Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Languages\' + LangFileName)
   else
     Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Languages\English.ini');
 
@@ -246,7 +248,7 @@ begin
   Ini.Free;
   //
 
-  WM_TaskBarCreated:=RegisterWindowMessage('TaskbarCreated');
+  WM_TASKBARCREATED:=RegisterWindowMessage('TaskbarCreated');
 
   WebView.Silent:=true;
   WebView.Navigate(ExtractFilePath(ParamStr(0)) + 'main.html');
@@ -388,13 +390,13 @@ procedure TMain.FormDestroy(Sender: TObject);
 var
   Ini: TIniFile;
 begin
-  Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Config.ini');
+  Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Setup.ini');
   if ChangeIcon.Enabled then IconIndex:=1;
   Ini.WriteInteger('Main', 'NewMessages', IconIndex);
   Ini.Free;
   Notifications.Free;
   ExcludeList.Free;
-  Tray(2);
+  Tray(3);
   IconFull.Free;
   if ScrollState then
     PressScroll;
@@ -409,8 +411,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.7.6' + #13#10 +
-  IDS_LAST_UPDATE + ' 03.03.24' + #13#10 +
+  Application.MessageBox(PChar(Application.Title + ' 0.7.7' + #13#10 +
+  IDS_LAST_UPDATE + ' 12.02.25' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
@@ -443,8 +445,7 @@ begin
     ExcludeTitle:=Copy(Notifications.Strings[NotifyIndex], 1, Pos(#9, Notifications.Strings[NotifyIndex]) - 1);
 
     case MessageBox(Handle, PChar(Format(IDS_BLOCK_QUESTION, [ExcludeTitle])), PChar(Caption), 35) of
-      6:
-        begin
+      6: begin
           ExcludeList.Add(ExcludeTitle);
           ExcludeList.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Exclude.txt');
         end;

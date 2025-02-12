@@ -3,16 +3,16 @@
 ← Choose language | Выберите язык
 
 # Notification center
-Alternative notification center for Windows. Compatible with [notifications for programs](https://github.com/r57zone/notifications). Can be used together with [EasyReminders](https://github.com/r57zone/EasyReminders), [RSS checker](https://github.com/r57zone/RSS-checker) and [EchoBackuper](https://github.com/r57zone/EchoBackuper/).
+Alternative notification center for Windows. Compatible with [notifications for programs](https://github.com/r57zone/notifications). Can be used together with [EasyReminders](https://github.com/r57zone/EasyReminders), [EchoBackuper](https://github.com/r57zone/EchoBackuper/) and [RSS checker](https://github.com/r57zone/RSS-checker).
 
 # Setup
-To enable blinking of the keyboard LED (Scroll Lock), change the `ScrollBlink` parameter to `1` in the "Config.ini" file. 
+To enable blinking of the keyboard LED (Scroll Lock), change the `ScrollBlink` parameter to `1` in the `Setup.ini` file. 
 
 ## Screenshots
 ![](https://user-images.githubusercontent.com/9499881/36250978-fbbba1c0-1258-11e8-8ef8-c3ec62ac554f.png)
 
 ## Download
->Version for Windows 7, 8.1, 10 with Internet Explorer 11 installed.
+>Version for Windows 7, 8.1, 10, 11 with Internet Explorer 11 installed.
 
 **[Download](https://github.com/r57zone/Notification-center/releases)**
 
