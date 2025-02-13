@@ -367,7 +367,7 @@ begin
       Notifications.Add(NotifyTitle + #9 + NotifyDesc + #9 + CurrentTimeHM + #9 + DateToStr(Date) + #9 + BigIcon + #9 + NotifyColor);
       AddNotification(Notifications.Count - 1, NotifyTitle, NotifyDesc, CurrentTimeHM, DateToStr(Date), BigIcon, NotifyColor);
       IconIndex:=1;
-      Tray(3);
+      Tray(2);
       // ¬ключаем "анимацию" иконки
       ChangeIcon.Enabled:=true;
       PressScroll;
@@ -412,7 +412,7 @@ end;
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
   Application.MessageBox(PChar(Application.Title + ' 0.7.7' + #13#10 +
-  IDS_LAST_UPDATE + ' 12.02.25' + #13#10 +
+  IDS_LAST_UPDATE + ' 13.02.25' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
@@ -465,7 +465,7 @@ begin
   else
     IconIndex:=0;
   PressScroll;
-  Tray(3);
+  Tray(2);
 end;
 
 procedure TMain.PressScroll;
