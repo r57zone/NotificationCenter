@@ -411,7 +411,7 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.7.7' + #13#10 +
+  Application.MessageBox(PChar(Application.Title + ' 0.7.8' + #13#10 +
   IDS_LAST_UPDATE + ' 13.02.25' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(AboutBtn.Caption), MB_ICONINFORMATION);
