@@ -43,14 +43,14 @@ type
     procedure DefaultHandler(var Message); override;
     procedure AddNotification(NotifyID: integer; NotifyTitle, NotifyDesc, NotifyTimeHM, NotifyDate, NotifyIconPath, NotifyColor: string);
     procedure LoadNotifications;
-    procedure NotificationCenterShow;
-    procedure NotificationCenterHide;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
     procedure IconMouse(var Msg: TMessage); message WM_USER + 1;
     procedure WMActivate(var Msg: TMessage); message WM_ACTIVATE;
     { Private declarations }
   public
+    procedure NotificationCenterShow;
+    procedure NotificationCenterHide;
     { Public declarations }
   end;
 
@@ -61,7 +61,6 @@ var
   IconIndex: byte;
   IconFull: TIcon;
   IDS_NOTIFICATIONS, IDS_DELETE_ALL, IDS_UNKNOWN_APP, IDS_BLOCK_QUESTION, IDS_LAST_UPDATE: string;
-  RunOnce: boolean;
   NotifyIndex: integer;
   ScrollBlink, ScrollState: boolean;
 
@@ -69,37 +68,32 @@ implementation
 
 {$R *.dfm}
 
-procedure Tray(ActInd: integer); //1 - добавить, 2 - заменить, 3 - удалить
+type TTrayAction = (TrayAdd, TrayUpdate, TrayDelete);
+procedure Tray(TrayAction: TTrayAction);
 var
   NIM: TNotifyIconData;
 begin
   with NIM do begin
-    cbSize:=SizeOf(nim);
+    cbSize:=SizeOf(NIM);
     Wnd:=Main.Handle;
     uId:=1;
     uFlags:=NIF_MESSAGE or NIF_ICON or NIF_TIP;
-
-    if IconIndex = 0 then
-      hIcon:=SendMessage(Application.Handle, WM_GETICON, ICON_SMALL2, 0)
-    else
-      hIcon:=IconFull.Handle;
-
+    hIcon:=SendMessage(Main.Handle, WM_GETICON, ICON_SMALL2, 0);
     uCallBackMessage:=WM_USER + 1;
     StrCopy(szTip, PChar(Application.Title));
   end;
-  case ActInd of
-    1: Shell_NotifyIcon(NIM_ADD, @NIM);
-    2: Shell_NotifyIcon(NIM_MODIFY, @NIM);
-    3: Shell_NotifyIcon(NIM_DELETE, @NIM);
+  case TrayAction of
+    TrayAdd: Shell_NotifyIcon(NIM_ADD, @NIM);
+    TrayUpdate: Shell_NotifyIcon(NIM_MODIFY, @NIM);
+    TrayDelete: Shell_NotifyIcon(NIM_DELETE, @NIM);
   end;
 end;
 
 procedure TMain.NotificationCenterShow;
 begin
-  if RunOnce = false then begin
+  if Main.AlphaBlend then begin
     Main.AlphaBlendValue:=255;
     Main.AlphaBlend:=false;
-    RunOnce:=true;
   end;
   Top:=Screen.Height - Main.Height - 54;
   Left:=Screen.Width - Main.Width - 8;
@@ -113,7 +107,7 @@ begin
     PressScroll;
 
   IconIndex:=0;
-  Tray(2);
+  Tray(TrayUpdate);
 end;
 
 procedure TMain.NotificationCenterHide;
@@ -252,7 +246,7 @@ begin
 
   WebView.Silent:=true;
   WebView.Navigate(ExtractFilePath(ParamStr(0)) + 'main.html');
-  Tray(1);
+  Tray(TrayAdd);
   SetWindowLong(Application.Handle, GWL_EXSTYLE, GetWindowLong(Application.Handle, GWL_EXSTYLE) or WS_EX_TOOLWINDOW);
   NotificationCenterHide;
   Notifications:=TStringList.Create;
@@ -367,7 +361,7 @@ begin
       Notifications.Add(NotifyTitle + #9 + NotifyDesc + #9 + CurrentTimeHM + #9 + DateToStr(Date) + #9 + BigIcon + #9 + NotifyColor);
       AddNotification(Notifications.Count - 1, NotifyTitle, NotifyDesc, CurrentTimeHM, DateToStr(Date), BigIcon, NotifyColor);
       IconIndex:=1;
-      Tray(2);
+      Tray(TrayUpdate);
       // ¬ключаем "анимацию" иконки
       ChangeIcon.Enabled:=true;
       PressScroll;
@@ -396,7 +390,7 @@ begin
   Ini.Free;
   Notifications.Free;
   ExcludeList.Free;
-  Tray(3);
+  Tray(TrayDelete);
   IconFull.Free;
   if ScrollState then
     PressScroll;
@@ -405,14 +399,14 @@ end;
 procedure TMain.DefaultHandler(var Message);
 begin
   if TMessage(Message).Msg = WM_TASKBARCREATED then
-    Tray(1);
+    Tray(TrayAdd);
   inherited;
 end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.7.8' + #13#10 +
-  IDS_LAST_UPDATE + ' 13.02.25' + #13#10 +
+  Application.MessageBox(PChar(Application.Title + ' 0.7.9' + #13#10 +
+  IDS_LAST_UPDATE + ' 28.10.25' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
@@ -465,16 +459,20 @@ begin
   else
     IconIndex:=0;
   PressScroll;
-  Tray(2);
+  Tray(TrayUpdate);
 end;
 
 procedure TMain.PressScroll;
+var
+  ScrollOn: Boolean;
 begin
-  if ScrollBlink = false then
-    Exit;
-  keybd_event(VK_SCROLL, VK_SCROLL, KEYEVENTF_EXTENDEDKEY, 0);
-  keybd_event(VK_SCROLL, VK_SCROLL, KEYEVENTF_EXTENDEDKEY or KEYEVENTF_KEYUP, 0);
-  ScrollState:=not ScrollState;
+  if ScrollBlink = false then Exit;
+  ScrollOn := (GetKeyState(VK_SCROLL) and 1) = 1;
+  if ScrollOn <> ScrollState then begin
+    keybd_event(VK_SCROLL, VK_SCROLL, KEYEVENTF_EXTENDEDKEY, 0);
+    keybd_event(VK_SCROLL, VK_SCROLL, KEYEVENTF_EXTENDEDKEY or KEYEVENTF_KEYUP, 0);
+    ScrollState := not ScrollState;
+  end;
 end;
 
 end.
