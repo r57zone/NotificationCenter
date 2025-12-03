@@ -62,7 +62,7 @@ var
   IconFull: TIcon;
   IDS_NOTIFICATIONS, IDS_DELETE_ALL, IDS_UNKNOWN_APP, IDS_BLOCK_QUESTION, IDS_LAST_UPDATE: string;
   NotifyIndex: integer;
-  ScrollBlink, ScrollState: boolean;
+  ScrollBlink: boolean;
 
 implementation
 
@@ -78,7 +78,10 @@ begin
     Wnd:=Main.Handle;
     uId:=1;
     uFlags:=NIF_MESSAGE or NIF_ICON or NIF_TIP;
-    hIcon:=SendMessage(Main.Handle, WM_GETICON, ICON_SMALL2, 0);
+    if IconIndex = 0 then
+      hIcon:=SendMessage(Application.Handle, WM_GETICON, ICON_SMALL2, 0)
+    else
+      hIcon:=IconFull.Handle;
     uCallBackMessage:=WM_USER + 1;
     StrCopy(szTip, PChar(Application.Title));
   end;
@@ -100,14 +103,6 @@ begin
   if WebView.Document <> nil then
     (WebView.Document as IHTMLDocument2).ParentWindow.Focus;
   ShowWindow(Handle, SW_SHOW);
-
-  // Выключаем "анимацию" иконки
-  ChangeIcon.Enabled:=false;
-  if ScrollState then // Наверняка выключаем, иногда оставался
-    PressScroll;
-
-  IconIndex:=0;
-  Tray(TrayUpdate);
 end;
 
 procedure TMain.NotificationCenterHide;
@@ -125,8 +120,15 @@ begin
         else
           NotificationCenterShow;
 
-        if ScrollState then
+        IconIndex:=0;
+        Tray(TrayUpdate);
+
+        // Выключаем "анимацию" иконки
+        ChangeIcon.Enabled:=false;
+        Application.ProcessMessages; // Важно, иначе пропускает
+        if (GetKeyState(VK_SCROLL) and 1) = 1 then // Наверняка выключаем, иногда оставался
           PressScroll;
+
       end;
 
     WM_RBUTTONDOWN:
@@ -392,7 +394,7 @@ begin
   ExcludeList.Free;
   Tray(TrayDelete);
   IconFull.Free;
-  if ScrollState then
+  if (GetKeyState(VK_SCROLL) and 1) = 1 then
     PressScroll;
 end;
 
@@ -405,8 +407,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Application.Title + ' 0.7.9' + #13#10 +
-  IDS_LAST_UPDATE + ' 28.10.25' + #13#10 +
+  Application.MessageBox(PChar(Application.Title + ' 0.8' + #13#10 +
+  IDS_LAST_UPDATE + ' 03.12.25' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(AboutBtn.Caption), MB_ICONINFORMATION);
 end;
@@ -466,13 +468,10 @@ procedure TMain.PressScroll;
 var
   ScrollOn: Boolean;
 begin
-  if ScrollBlink = false then Exit;
-  ScrollOn := (GetKeyState(VK_SCROLL) and 1) = 1;
-  if ScrollOn <> ScrollState then begin
-    keybd_event(VK_SCROLL, VK_SCROLL, KEYEVENTF_EXTENDEDKEY, 0);
-    keybd_event(VK_SCROLL, VK_SCROLL, KEYEVENTF_EXTENDEDKEY or KEYEVENTF_KEYUP, 0);
-    ScrollState := not ScrollState;
-  end;
+  if ScrollBlink = false then
+    Exit;
+  keybd_event(VK_SCROLL, 0, 0, 0);
+  keybd_event(VK_SCROLL, 0, KEYEVENTF_KEYUP, 0);
 end;
 
 end.
